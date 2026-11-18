@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vercel/
+
+# Large raw files downloaded locally from Zenodo (kept out of Git to avoid >100MB push errors; compiled data is in public/data/)
+dados_zenodo/extracted/
+dados_zenodo/*.zip
+dados_zenodo/*.rds
+dados_zenodo/sia_ta_piloto_rj_202412.csv
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db

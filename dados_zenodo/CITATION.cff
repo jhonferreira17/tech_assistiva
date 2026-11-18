@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "Se você utilizar este conjunto de dados em sua pesquisa, por favor cite conforme os metadados abaixo."
+authors:
+  - family-names: "Alonso"
+    given-names: "Carolina Maria do Carmo"
+    affiliation: "Universidade Federal do Rio de Janeiro (UFRJ)"
+    role: "Coordenadora do Projeto / Principal Investigator"
+  - family-names: "Rodrigues"
+    given-names: "Hidelbrando Ferreira"
+    affiliation: "Universidade Federal do Amazonas (UFAM)"
+    orcid: "https://orcid.org/0000-0003-1266-0957"
+    role: "Vice-Coordenador do Projeto / Co-Principal Investigator"
+  - family-names: "Duarte"
+    given-names: "Francisco José de Castro Moura"
+    affiliation: "Universidade Federal do Rio de Janeiro (COPPE/UFRJ)"
+    role: "Pesquisador / Researcher"
+  - family-names: "Nogueira"
+    given-names: "Lilian de Fátima Zanoni"
+    affiliation: "Universidade Federal do Rio de Janeiro (UFRJ)"
+    role: "Pesquisadora / Researcher"
+title: "Microdados de Tecnologia Assistiva no Sistema Único de Saúde (SUS) — Triênio 2022–2024: Base Censitária Nacional Auditada e Pareada ao Censo Demográfico IBGE 2022"
+version: 1.0.0
+doi: 10.5281/zenodo.placeholder
+date-released: 2026-11-14
+url: "https://doi.org/10.5281/zenodo.placeholder"
+keywords:
+  - "Tecnologia Assistiva"
+  - "Sistema Único de Saúde (SUS)"
+  - "Pessoas com Deficiência"
+  - "Reabilitação"
+  - "Sistemas de Informação em Saúde"
+  - "Microdados DATASUS"
+  - "Equidade em Saúde"
+license: CC-BY-4.0

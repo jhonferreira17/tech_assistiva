@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Acompanhamento de Tecnologias Assistivas — SUS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" aria-label="Menu do Sistema">
+      <div>
+        <div class="brand-box">
+          <div class="brand-eyebrow">Monitoramento SUS</div>
+          <div class="brand-title">Mapa de Tecnologia Assistiva</div>
+          <div class="brand-meta">Sistema de Acompanhamento da Rede e Concessões (2022–2024)</div>
+        </div>
+
+        <div class="nav-section-label">Monitoramento</div>
+        <nav class="sidebar-nav" role="tablist">
+          <button class="nav-tab active" data-tab="tab-painel" role="tab" aria-selected="true">
+            <span class="tab-step">📊</span>
+            <span>Painel Geral</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-territorio" role="tab" aria-selected="false">
+            <span class="tab-step">🗺️</span>
+            <span>Mapa &amp; Cobertura</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-rede" role="tab" aria-selected="false">
+            <span class="tab-step">🏥</span>
+            <span>Rede de Serviços (CNES)</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-fluxos" role="tab" aria-selected="false">
+            <span class="tab-step">🧭</span>
+            <span>Deslocamento de Pacientes</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-perfil" role="tab" aria-selected="false">
+            <span class="tab-step">👥</span>
+            <span>Pacientes &amp; Equipes</span>
+          </button>
+
+          <div class="nav-section-label">Consultas &amp; Dados</div>
+          <button class="nav-tab" data-tab="tab-catalogo" role="tab" aria-selected="false">
+            <span class="tab-step">🦽</span>
+            <span>Catálogo de Tecnologias</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-auditoria" role="tab" aria-selected="false">
+            <span class="tab-step">🗄️</span>
+            <span>Base de Dados &amp; Qualidade</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
+        <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
+        <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
+          35 arquivos • 972 partições Parquet • 5.570 municípios
+        </div>
+        <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
+          <span>🌓 Tema Claro / Escuro</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+      <!-- Sleek Sticky Top Filter Bar -->
+      <header class="topbar" aria-label="Filtros do Sistema">
+        <div class="filter-group">
+          <div class="filter-item">
+            <label for="filterAno">Período</label>
+            <select id="filterAno" class="filter-select">
+              <option value="ALL">2022 a 2024 (Consolidado)</option>
+              <option value="2022">Ano 2022</option>
+              <option value="2023">Ano 2023</option>
+              <option value="2024">Ano 2024</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filterMacro">Região</label>
+            <select id="filterMacro" class="filter-select">
+              <option value="ALL">Todas as Regiões</option>
+              <option value="Norte">Norte</option>
+              <option value="Nordeste">Nordeste</option>
+              <option value="Sudeste">Sudeste</option>
+              <option value="Sul">Sul</option>
+              <option value="Centro-Oeste">Centro-Oeste</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filterUF">Estado</label>
+            <select id="filterUF" class="filter-select">
+              <option value="ALL">Todos os Estados (27 UFs)</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filterModalidade">Linha de Cuidado</label>
+            <select id="filterModalidade" class="filter-select">
+              <option value="ALL">Todas as Tecnologias</option>
+              <option value="TA04">Audição (Aparelhos Auditivos / FM)</option>
+              <option value="TA01">Locomoção (Cadeiras de Rodas / Andadores)</option>
+              <option value="TA05">Visão e Baixa Visão (Óculos / Próteses)</option>
+              <option value="TA02">Órteses Ortopédicas</option>
+              <option value="TA10">Adequação Postural e Prevenção de Lesões</option>
+              <option value="TA03">Próteses de Membros</option>
+              <option value="TA06">Reabilitação Vocal (Laringe Eletrônica)</option>
+            </select>
+          </div>
+          <button class="btn" id="btnResetFilters">Limpar Filtros</button>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn" id="btnExportCurrentCSV" title="Baixar dados filtrados em planilha CSV">
+            <span>📥 Exportar Planilha (CSV)</span>
+          </button>
+          <a href="/data/dados_ta_sus_2022_2024.json" download="dados_ta_sus_2022_2024.json" class="btn btn-primary">
+            <span>📦 Baixar JSON</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Workspace -->
+      <main class="workspace">
+
+        <!-- Clean 4-Card KPI Strip -->
+        <div class="kpi-strip" id="globalKpiGrid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Equipamentos Entregues</span>
+              <span class="tag tag-prod">Produtos Físicos</span>
+            </div>
+            <div class="kpi-value" id="kpiProdQtd">2.167.191</div>
+            <div class="kpi-footer" id="kpiProdSub">R$ 1.215.793.168,40 (95,7% do orçamento)</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Atendimentos de Adaptação</span>
+              <span class="tag tag-proc">Acompanhamento</span>
+            </div>
+            <div class="kpi-value" id="kpiProcQtd">330.358</div>
+            <div class="kpi-footer" id="kpiProcSub">Avaliação, moldagem, ajustes e manutenção</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Índice de Acompanhamento</span>
+              <span class="tag tag-zero">Adaptação / Entrega</span>
+            </div>
+            <div class="kpi-value" id="kpiRI">0,1524</div>
+            <div class="kpi-footer" id="kpiRISub">1 atendimento clínico a cada 6,6 equipamentos</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span>Investimento SUS Aprovado</span>
+              <span class="tag tag-ok" id="kpiGlosa">Glosa: 2,18% / 1,13%</span>
+            </div>
+            <div class="kpi-value" id="kpiValTotal">R$ 1,27 bi</div>
+            <div class="kpi-footer" id="kpiValSub">2.089.337 registros aprovados</div>
+          </div>
+        </div>
+
+        <!-- =================================================================
+             MÓDULO 1 — PAINEL GERAL
+             ================================================================= -->
+        <section id="tab-painel" class="tab-panel active" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Painel Geral de Entregas e Acompanhamento</h2>
+              <p>Acompanhamento mensal de equipamentos fornecidos pelo SUS, atendimentos clínicos de adaptação e recursos investidos por linha de cuidado.</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="painel-visao">Evolução &amp; Categorias</button>
+              <button class="seg-btn" data-target="painel-anual">Resumo Anual (2022–2024)</button>
+              <button class="seg-btn" data-target="painel-grupos">Grupos de Equipamentos</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 1.1: Charts -->
+          <div id="painel-visao" class="subview-panel active">
+            <div class="insight-strip">
+              <strong>Alerta de Monitoramento:</strong> A entrega de equipamentos cresceu <strong>22,2%</strong> entre 2022 e 2024 (passando de 658,7 mil para 805,1 mil unidades/ano), mas o índice de acompanhamento clínico caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem o respectivo retorno registrado para adaptação ou treino.
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Evolução Mensal de Entregas e Atendimentos</h3>
+                    <p class="card-subtitle">Série histórica de 36 meses (Janeiro/2022 a Dezembro/2024)</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartSerieMensal"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Equipamentos vs. Adaptação por Linha de Cuidado</h3>
+                    <p class="card-subtitle">Volume entregue e proporção de acompanhamento clínico</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartModalidadesCap1"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 1.2: Annual Summary -->
+          <div id="painel-anual" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Consolidado Anual de Produção, Orçamento e Cobertura</h3>
+                  <p class="card-subtitle">Equipamentos físicos e procedimentos clínicos separados conforme critério de auditoria</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableReconciliacao12">
+                  <thead>
+                    <tr>
+                      <th>Ano</th>
+                      <th>Tipo de Atendimento</th>
+                      <th class="num-col">Registros</th>
+                      <th class="num-col">Qtd. Solicitada</th>
+                      <th class="num-col">Qtd. Aprovada</th>
+                      <th class="num-col">% Rejeição Física</th>
+                      <th class="num-col">Valor Solicitado</th>
+                      <th class="num-col">Valor Aprovado</th>
+                      <th class="num-col">% Rejeição Fin.</th>
+                      <th class="num-col">Serviços (CNES)</th>
+                      <th class="num-col">Mun. Ofertantes</th>
+                      <th class="num-col">Mun. Atendidos</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="2">Total Acumulado (2022–2024)</td>
+                      <td class="num-col">2.089.337</td>
+                      <td class="num-col">2.553.283</td>
+                      <td class="num-col">2.497.549</td>
+                      <td class="num-col">2,18%</td>
+                      <td class="num-col">R$ 1.284.723.433,93</td>
+                      <td class="num-col">R$ 1.270.170.973,39</td>
+                      <td class="num-col">1,13%</td>
+                      <td class="num-col">592 / 670</td>
+                      <td class="num-col">286</td>
+                      <td class="num-col">5.394</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 1.3: Equipment Groups -->
+          <div id="painel-grupos" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Entregas e Cobertura por Grupo de Equipamentos</h3>
+                  <p class="card-subtitle">Separação entre equipamentos principais de reabilitação e itens de reposição/dispensação simples, calculados sobre a população com deficiência do Censo 2022</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableEstratos13">
+                  <thead>
+                    <tr>
+                      <th>Grupo de Equipamento</th>
+                      <th>Classificação</th>
+                      <th class="num-col">Entregas 2024 (%)</th>
+                      <th class="num-col">Gasto 2024</th>
+                      <th class="num-col">Total 2022–2024</th>
+                      <th class="num-col">Gasto Total</th>
+                      <th>Público-Alvo (Censo 2022)</th>
+                      <th class="num-col">Taxa 2024 / 1k PcD</th>
+                      <th class="num-col">Média Anual / 1k PcD</th>
+                      <th class="num-col">Taxa / 100k hab</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 2 — MAPA & COBERTURA TERRITORIAL
+             ================================================================= -->
+        <section id="tab-territorio" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Mapa de Cobertura e Desigualdades Regionais</h2>
+              <p>Acompanhamento por estado, município e faixa de renda, cruzando as entregas do SUS com os 14,4 milhões de pessoas com deficiência do Censo IBGE 2022.</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="terr-estados">Painel por Estado (27 UFs)</button>
+              <button class="seg-btn" data-target="terr-polos">Municípios Polos (314)</button>
+              <button class="seg-btn" data-target="terr-equidade">Cobertura por Renda &amp; Vazios</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 2.1: States Grid & Table -->
+          <div id="terr-estados" class="subview-panel active">
+            <div class="insight-strip">
+              <strong>Filtro Interativo por Estado:</strong> Clique em qualquer unidade da federação abaixo para filtrar os indicadores de todo o sistema. Apenas <strong>5,6% dos municípios brasileiros (312)</strong> possuem serviço próprio de entrega e <strong>2,75% (140)</strong> contam com acompanhamento clínico local.
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Monitoramento por Unidade da Federação</h3>
+                  <p class="card-subtitle">Equipamentos entregues, taxa por 1.000 pessoas com deficiência e índice de acompanhamento (RI)</p>
+                </div>
+                <span class="tag tag-prod" id="badgeUfTableYear">Consolidado</span>
+              </div>
+              <div class="brazil-map-grid" id="brazilUfGrid"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Detalhamento Estadual de Entregas, Serviços e Cobertura Populacional</h3>
+                  <p class="card-subtitle">Comparativo entre estados com base no Censo Demográfico IBGE 2022</p>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:480px;overflow-y:auto;">
+                <table class="sci-table" id="tableResumo27UFs">
+                  <thead>
+                    <tr>
+                      <th>UF</th>
+                      <th>Estado</th>
+                      <th>Região</th>
+                      <th class="num-col">Pessoas c/ Deficiência</th>
+                      <th class="num-col">Serviços (CNES)</th>
+                      <th class="num-col">Mun. Polos</th>
+                      <th class="num-col">Equipamentos</th>
+                      <th class="num-col">Taxa / 1k PcD</th>
+                      <th class="num-col">Adaptações</th>
+                      <th class="num-col">Investimento Total</th>
+                      <th class="num-col">% Pacientes de Fora</th>
+                      <th class="num-col">Acompanhamento (RI)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 2.2: 314 Municipal Hubs -->
+          <div id="terr-polos" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Municípios Ofertantes de Tecnologia Assistiva no Brasil</h3>
+                  <p class="card-subtitle">Comparativo entre o total produzido pelo município-polo e o total destinado aos seus próprios moradores</p>
+                </div>
+                <input type="text" id="inputSearchPoloMun" class="filter-input" placeholder="🔎 Buscar município ou Região de Saúde..." style="min-width:260px;" />
+              </div>
+              <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
+                <table class="sci-table" id="tablePolosMunicipaisRDS">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Município Polo</th>
+                      <th>UF</th>
+                      <th>Região de Saúde</th>
+                      <th class="num-col">Pop. PcD Local</th>
+                      <th class="num-col">Serviços (CNES)</th>
+                      <th class="num-col">Equip. Ofertados</th>
+                      <th class="num-col">Adaptações Ofertadas</th>
+                      <th class="num-col">Valor Executado</th>
+                      <th class="num-col">Índice Acomp.</th>
+                      <th class="num-col">Equip. p/ Moradores</th>
+                      <th class="num-col">Taxa Local / 1k PcD</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 2.3: Income Quintiles & Healthcare Deserts -->
+          <div id="terr-equidade" class="subview-panel">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Acesso por Faixa de PIB per Capita Municipal (Q1 a Q5)</h3>
+                    <p class="card-subtitle">Do grupo de municípios mais pobres (Q1) ao grupo de maior renda (Q5)</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartQuintisPIB"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Concentração por Complexidade do Serviço</h3>
+                    <p class="card-subtitle">Razão de desigualdade entre municípios mais ricos e mais pobres (RII e Wagstaff)</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartDesigualdadeSiiRii"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Cobertura Assistencial por Região e Faixa de Renda Municipal (5.570 Municípios)</h3>
+                  <p class="card-subtitle">Comparativo entre moradores atendidos e presença de serviço instalado no próprio município</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableJustica41">
+                  <thead>
+                    <tr>
+                      <th>Recorte</th>
+                      <th>Grupo</th>
+                      <th class="num-col">Municípios</th>
+                      <th class="num-col">População PcD</th>
+                      <th class="num-col">% Mun. c/ Morador Atendido (Equip.)</th>
+                      <th class="num-col">% Mun. c/ Morador Atendido (Clín.)</th>
+                      <th class="num-col">% Mun. c/ Entrega Local</th>
+                      <th class="num-col">% Mun. c/ Clínica Local</th>
+                      <th class="num-col">Equip. / 1k PcD</th>
+                      <th class="num-col">Adaptações / 1k PcD</th>
+                      <th class="num-col">Índice Acomp.</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Mapeamento de Polos e Vazios Assistenciais (Agrupamentos Territoriais)</h3>
+                    <p class="card-subtitle">Identificação de 81 municípios em desertos assistenciais (Oeste Amazônico e Semiárido) frente a 533 polos consolidados</p>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="sci-table" id="tableMoran43">
+                    <thead>
+                      <tr>
+                        <th>Indicador</th>
+                        <th class="num-col">Índice Moran</th>
+                        <th>Situação Territorial</th>
+                        <th class="num-col">Municípios</th>
+                        <th class="num-col">% País</th>
+                        <th class="num-col">População PcD</th>
+                        <th class="num-col">PIB per Capita Médio</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Indicadores de Desigualdade Socioeconômica</h3>
+                    <p class="card-subtitle">Diferença absoluta (SII) e relativa (RII) entre municípios de maior e menor renda</p>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="sci-table" id="tableIndices42">
+                    <thead>
+                      <tr>
+                        <th>Dimensão Avaliada</th>
+                        <th class="num-col">Média Nac.</th>
+                        <th>Diferença Absoluta (SII)</th>
+                        <th>Razão Relativa (RII)</th>
+                        <th class="num-col">Índice C</th>
+                        <th>Índice Wagstaff</th>
+                        <th class="num-col">Erreygers</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 3 — REDE DE SERVIÇOS (CNES, CER & OFICINAS ORTOPÉDICAS)
+             ================================================================= -->
+        <section id="tab-rede" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Rede de Serviços Habilitados (CNES, CER e Oficinas Ortopédicas)</h2>
+              <p>Acompanhamento dos 592 serviços ativos em 2024 (670 no triênio), desempenho por gestão (Pública, Filantrópica e Privada) e concentração de atendimentos.</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="rede-visao">Perfil da Rede &amp; Concentração</button>
+              <button class="seg-btn" data-target="rede-unidades">Lista de Estabelecimentos (CNES)</button>
+              <button class="seg-btn" data-target="rede-desempenho">Desempenho por Tipo de Gestão</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 3.1: Charts -->
+          <div id="rede-visao" class="subview-panel active">
+            <div class="insight-strip">
+              <strong>Perfil de Atendimento da Rede:</strong> As instituições <strong>Filantrópicas (219 serviços)</strong> respondem por <strong>57,0% do valor de equipamentos</strong> e <strong>66,4% de todos os atendimentos clínicos de adaptação</strong>. Já os <strong>73 prestadores Privados</strong> concentram-se na entrega comercial de produtos (15,6% do orçamento) com índice mínimo de acompanhamento clínico (2,4% dos atos). As <strong>8 Oficinas Ortopédicas</strong> registram o maior índice de cuidado contínuo da rede (<code>0,4135</code>).
+            </div>
+            <div class="grid-3">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Divisão entre Público, Filantrópico e Privado</h3>
+                    <p class="card-subtitle">Proporção de serviços cadastrados vs. produção real</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartEsferaJuridica"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Índice de Acompanhamento por Tipo de Serviço</h3>
+                    <p class="card-subtitle">Impacto da habilitação CER e das Oficinas Ortopédicas</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartIntegralidadeCER"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Concentração de Atendimentos na Rede</h3>
+                    <p class="card-subtitle">Os 10% maiores serviços (67 CNES) concentram 87,2% das adaptações</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartLorenzGini"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 3.2: Top CNES List -->
+          <div id="rede-unidades" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Monitoramento Individual dos Principais Serviços de Saúde (CNES)</h3>
+                  <p class="card-subtitle">Volume de equipamentos entregues, atendimentos de adaptação, municípios atendidos e taxa de rejeição</p>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
+                <table class="sci-table" id="tableTopCNES">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Código CNES</th>
+                      <th>Município Sede (UF)</th>
+                      <th>Região de Saúde</th>
+                      <th class="num-col">Anos Ativos</th>
+                      <th class="num-col">Equipamentos</th>
+                      <th class="num-col">Adaptações</th>
+                      <th class="num-col">Orçamento Aprovado</th>
+                      <th class="num-col">Mun. Atendidos</th>
+                      <th class="num-col">% Rejeição</th>
+                      <th class="num-col">Índice Acomp.</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 3.3: Performance Tables -->
+          <div id="rede-desempenho" class="subview-panel">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Série Histórica por Tipo de Gestão e Habilitação CER (2022–2024)</h3>
+                    <p class="card-subtitle">Evolução anual de serviços ativos, entregas, glosas e acompanhamento</p>
+                  </div>
+                </div>
+                <div class="table-responsive" style="max-height:520px;overflow-y:auto;">
+                  <table class="sci-table" id="tableEconomia31">
+                    <thead>
+                      <tr>
+                        <th>Recorte</th>
+                        <th>Período / Gestão</th>
+                        <th>Categoria</th>
+                        <th class="num-col">CNES</th>
+                        <th class="num-col">Equipamentos</th>
+                        <th class="num-col">Valor Equip.</th>
+                        <th class="num-col">Adaptações</th>
+                        <th class="num-col">Glosa Física</th>
+                        <th class="num-col">Glosa Fin.</th>
+                        <th class="num-col">Índice Acomp.</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Comparativo Ajustado de Acompanhamento Clínico por Gestão e Região</h3>
+                    <p class="card-subtitle">Razão de taxas (Rate Ratio) comparada ao setor privado contratado e à Região Sudeste</p>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="sci-table" id="tableQuasiPoisson33">
+                    <thead>
+                      <tr>
+                        <th>Fator Institucional / Regional</th>
+                        <th class="num-col">Coeficiente</th>
+                        <th class="num-col">Razão de Taxa (RR)</th>
+                        <th>Intervalo de Confiança 95%</th>
+                        <th class="num-col">Significância (p)</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 4 — DESLOCAMENTO DE PACIENTES (FLUXOS ORIGEM-DESTINO)
+             ================================================================= -->
+        <section id="tab-fluxos" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Deslocamento de Pacientes e Polos Regionais de Atração</h2>
+              <p>Monitoramento das viagens intermunicipais realizadas pelos pacientes para obter equipamentos e acompanhamento (16.170 rotas entre municípios).</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="fluxos-visao">Distâncias &amp; Barreiras de Acesso</button>
+              <button class="seg-btn" data-target="fluxos-polos">15 Maiores Polos Nacionais</button>
+              <button class="seg-btn" data-target="fluxos-rotas">Principais Rotas Origem → Destino</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 4.1: Distance Charts & Regional Summary -->
+          <div id="fluxos-visao" class="subview-panel active">
+            <div class="insight-strip">
+              <strong>Deslocamento para Atendimento:</strong> No Brasil, <strong>47,4% dos equipamentos</strong> e <strong>42,5% dos atendimentos clínicos</strong> exigem que o paciente viaje para outro município (sendo que 30,15% cruzam limites de Região de Saúde). Na <strong>Região Norte</strong>, a distância média percorrida chega a <strong>307,0 km</strong> por atendimento.
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Distância Percorrida pelos Pacientes por Região (km)</h3>
+                    <p class="card-subtitle">Média ponderada e mediana das viagens intermunicipais</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartDistanciaMacro"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Fatores que Condicionam o Acesso Local e Clínico</h3>
+                    <p class="card-subtitle">Impacto da região, porte populacional e renda municipal (Razão de Chances / Taxas)</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartHurdleForest"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Indicadores de Deslocamento Intermunicipal por Região</h3>
+                  <p class="card-subtitle">Proporção de pacientes atendidos fora do município de moradia e distâncias percorridas</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableRedes52">
+                  <thead>
+                    <tr>
+                      <th>Região</th>
+                      <th class="num-col">Rotas Intermunicipais</th>
+                      <th class="num-col">% Equip. Fora do Mun.</th>
+                      <th class="num-col">% Adaptações Fora do Mun.</th>
+                      <th class="num-col">% Cruza Região de Saúde</th>
+                      <th class="num-col">% Cruza Estado (UF)</th>
+                      <th class="num-col">Distância Média (km)</th>
+                      <th class="num-col">Mediana (km)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 4.2: Top 15 National Hubs -->
+          <div id="fluxos-polos" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Os 15 Maiores Polos Nacionais de Referência em Tecnologia Assistiva</h3>
+                  <p class="card-subtitle">Quantidade de municípios atendidos por cada polo, raio médio de atração de pacientes e diagnóstico de acompanhamento</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tablePolos53">
+                  <thead>
+                    <tr>
+                      <th>Polo de Atendimento</th>
+                      <th>Região</th>
+                      <th class="num-col">Equipamentos</th>
+                      <th class="num-col">Adaptações</th>
+                      <th class="num-col">Índice Acomp.</th>
+                      <th class="num-col">Investimento Aprovado</th>
+                      <th class="num-col">Municípios Atendidos</th>
+                      <th class="num-col">Raio Médio (km)</th>
+                      <th class="num-col">% do Total Nacional</th>
+                      <th>Situação do Acompanhamento Clínico</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 4.3: Main O-D Routes -->
+          <div id="fluxos-rotas" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Principais Fluxos Entre Município de Moradia e Município de Atendimento</h3>
+                  <p class="card-subtitle">Rotas com maior volume de pacientes deslocados e distância em linha reta (SIRGAS 2000)</p>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:520px;overflow-y:auto;">
+                <table class="sci-table" id="tableArcosOD">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Município de Residência do Paciente</th>
+                      <th>Município do Serviço (Destino)</th>
+                      <th>Região</th>
+                      <th class="num-col">Distância (km)</th>
+                      <th>Cruza Região de Saúde</th>
+                      <th class="num-col">Equipamentos</th>
+                      <th class="num-col">Adaptações</th>
+                      <th class="num-col">Valor Aprovado</th>
+                      <th class="num-col">Índice Acomp.</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 5 — PACIENTES & EQUIPES MULTIPROFISSIONAIS
+             ================================================================= -->
+        <section id="tab-perfil" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Perfil dos Pacientes Atendidos e Equipes Profissionais</h2>
+              <p>Principais causas de indicação clínica (CID-10), distribuição por faixa etária, sexo, raça/cor e atuação dos profissionais de reabilitação (CBO).</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="perfil-visao">Equipes &amp; Principais Causas</button>
+              <button class="seg-btn" data-target="perfil-demografia">Faixa Etária, Sexo &amp; Raça/Cor</button>
+              <button class="seg-btn" data-target="perfil-tabelas">Detalhamento por Profissão e CID</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 5.1: CBO & CID Charts -->
+          <div id="perfil-visao" class="subview-panel active">
+            <div class="insight-strip">
+              <strong>Atuação Multiprofissional:</strong> Fisioterapeutas (<strong>601,5 mil atendimentos</strong>, liderando Locomoção e Próteses) e Fonoaudiólogos (<strong>570,8 mil atendimentos</strong>, 90,3% da Saúde Auditiva) respondem por <strong>56,1% de todos os registros</strong>, atuando junto a Médicos Especialistas (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Participação dos Profissionais por Linha de Cuidado</h3>
+                    <p class="card-subtitle">Divisão de atendimentos entre Fisioterapia, Fonoaudiologia, Medicina e Terapia Ocupacional</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartCBOModalidade"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Principais Diagnósticos Atendidos (CID-10)</h3>
+                    <p class="card-subtitle">Perda auditiva, paralisia cerebral, amputações, deformidades ortopédicas, hanseníase e AVC</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartTopCID10"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 5.2: Demographics -->
+          <div id="perfil-demografia" class="subview-panel">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Pacientes Atendidos por Faixa Etária</h3>
+                    <p class="card-subtitle">Distribuição entre crianças, jovens, adultos e idosos</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartFaixaEtaria"></canvas>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Perfil por Raça/Cor e Sexo</h3>
+                    <p class="card-subtitle">Registros extraídos das autorizações individuais (APAC e BPA-I)</p>
+                  </div>
+                </div>
+                <div class="chart-box">
+                  <canvas id="chartRacaSexo"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 5.3: Tables CBO & CID -->
+          <div id="perfil-tabelas" class="subview-panel">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Atendimentos e Recursos por Categoria Profissional (CBO)</h3>
+                    <p class="card-subtitle">Distribuição em cada linha de cuidado</p>
+                  </div>
+                </div>
+                <div class="table-responsive" style="max-height:520px;overflow-y:auto;">
+                  <table class="sci-table" id="tableCBO22">
+                    <thead>
+                      <tr>
+                        <th>Linha</th>
+                        <th>Categoria Profissional</th>
+                        <th class="num-col">Registros (%)</th>
+                        <th class="num-col">Itens Aprovados</th>
+                        <th class="num-col">Valor Aprovado</th>
+                        <th class="num-col">% Orçamento</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Diagnósticos Mais Frequentes por Linha de Cuidado (CID-10)</h3>
+                    <p class="card-subtitle">Demanda física e financeira por condição clínica</p>
+                  </div>
+                </div>
+                <div class="table-responsive" style="max-height:520px;overflow-y:auto;">
+                  <table class="sci-table" id="tableCID23">
+                    <thead>
+                      <tr>
+                        <th>Linha</th>
+                        <th>CID-10</th>
+                        <th>Condição Clínica / Diagnóstico</th>
+                        <th class="num-col">Registros</th>
+                        <th class="num-col">Qtd. Aprovada</th>
+                        <th class="num-col">Valor Aprovado</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 6 — CATÁLOGO DE TECNOLOGIAS ASSISTIVAS (SIGTAP)
+             ================================================================= -->
+        <section id="tab-catalogo" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Catálogo de Tecnologias Assistivas e Procedimentos (SIGTAP)</h2>
+              <p>Consulta aos 167 itens monitorados no SUS (131 equipamentos e 36 atos clínicos) e aos 59 itens não incluídos no escopo de reabilitação.</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="cat-incluidos">167 Tecnologias Monitoradas</button>
+              <button class="seg-btn" data-target="cat-excluidos">59 Procedimentos Fora do Escopo</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 6.1: 167 Included -->
+          <div id="cat-incluidos" class="subview-panel active">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Lista Completa de Equipamentos e Procedimentos de Adaptação</h3>
+                  <p class="card-subtitle">Os 34 procedimentos clínicos marcados como "Custeio Global CER" possuem valor unitário R$ 0,00 na tabela por serem financiados via repasse mensal aos centros</p>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <input type="text" id="inputSearchSigtap" class="filter-input" placeholder="🔎 Buscar por código ou nome do equipamento..." style="min-width:260px;" />
+                  <select id="selectTipoSigtap" class="filter-select">
+                    <option value="ALL">Todos os Itens (167)</option>
+                    <option value="Produto">Apenas Equipamentos (131)</option>
+                    <option value="Procedimento">Apenas Atendimentos Clínicos (36)</option>
+                    <option value="ZERO">Apenas Custeio Global CER (R$ 0,00)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:560px;overflow-y:auto;">
+                <table class="sci-table" id="tableSigtapCatalog">
+                  <thead>
+                    <tr>
+                      <th>Código SIGTAP</th>
+                      <th>Linha</th>
+                      <th>Grupo</th>
+                      <th>Nome Oficial do Equipamento / Procedimento</th>
+                      <th>Tipo</th>
+                      <th>Forma de Custeio</th>
+                      <th class="num-col">Qtd. Aprovada</th>
+                      <th class="num-col">% Rejeição</th>
+                      <th class="num-col">Valor Liquidado</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 6.2: 59 Excluded -->
+          <div id="cat-excluidos" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Procedimentos do Subgrupo 07.01 Não Incluídos no Monitoramento de Reabilitação (59 itens)</h3>
+                  <p class="card-subtitle">Itens de ortodontia, próteses bucomaxilofaciais oncológicas, malhas para queimados e bolsas de ostomia</p>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:560px;overflow-y:auto;">
+                <table class="sci-table" id="tableSigtapExcluidos">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Código SIGTAP</th>
+                      <th>Descrição Oficial SIGTAP</th>
+                      <th>Critério Aplicado</th>
+                      <th>Motivo da Não Inclusão</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 7 — BASE DE DADOS, CONSULTA SQL & QUALIDADE (RECORD/GATHER)
+             ================================================================= -->
+        <section id="tab-auditoria" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Base de Dados, Consulta Direta e Critérios de Qualidade</h2>
+              <p>Acesso aos 35 arquivos sincronizados do Zenodo (<code>10.5281/zenodo.24225551</code>), consulta SQL sobre as 972 partições Parquet e conformidade com os critérios da pasta <code>documentos_base</code>.</p>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-target="aud-arquivos">Consulta SQL &amp; 35 Arquivos Zenodo</button>
+              <button class="seg-btn" data-target="aud-qualidade">Preenchimento &amp; Regras da Base</button>
+              <button class="seg-btn" data-target="aud-checklists">Conformidade RECORD &amp; GATHER</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 7.1: SQL Console & 35 Zenodo Files -->
+          <div id="aud-arquivos" class="subview-panel active">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Consulta SQL Direta na Base Parquet (DuckDB + Node.js/TypeScript)</h3>
+                  <p class="card-subtitle">Execute consultas personalizadas sobre os 2.089.337 registros usando a tabela <code>sia_ta_parquet</code></p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="btn" id="btnSqlPreset1">Exemplo 1: Resumo por Ano</button>
+                  <button class="btn" id="btnSqlPreset2">Exemplo 2: Top 15 CID-10</button>
+                  <button class="btn" id="btnSqlPreset3">Exemplo 3: Procedimentos Tarifa Zero</button>
+                  <button class="btn btn-primary" id="btnRunDuckDB">▶ Executar Consulta</button>
+                </div>
+              </div>
+              <textarea id="textareaDuckDBSql" class="code-pre" style="width:100%;min-height:110px;resize:vertical;margin-bottom:12px;">SELECT 
+  ano,
+  tipo_registro,
+  COUNT(*) AS registros,
+  CAST(SUM(PA_QTDPRO) AS BIGINT) AS qtd_solicitada,
+  CAST(SUM(PA_QTDAPR) AS BIGINT) AS qtd_aprovada,
+  ROUND(SUM(PA_VALAPR), 2) AS valor_aprovado_reais
+FROM sia_ta_parquet
+GROUP BY ano, tipo_registro
+ORDER BY ano, tipo_registro;</textarea>
+              <div id="duckdbResultContainer" class="table-responsive" style="max-height:320px;overflow-y:auto;"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Arquivos da Base de Dados Sincronizados do Zenodo (35 arquivos)</h3>
+                  <p class="card-subtitle">Repositório oficial DOI: 10.5281/zenodo.24225551 • Armazenados localmente em <code>dados_zenodo/</code></p>
+                </div>
+                <span class="tag tag-ok">35 Arquivos Sincronizados</span>
+              </div>
+              <div class="table-responsive" style="max-height:460px;overflow-y:auto;">
+                <table class="sci-table" id="tableArquivosZenodo35">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Nome do Arquivo</th>
+                      <th>Formato</th>
+                      <th class="num-col">Tamanho</th>
+                      <th>Hash MD5</th>
+                      <th>Status &amp; Download</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 7.2: Data Quality & Completeness -->
+          <div id="aud-qualidade" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Qualidade de Preenchimento dos Registros no SUS (n = 2.089.337)</h3>
+                  <p class="card-subtitle">Percentual de registros com diagnóstico CID-10 (99,992%), profissional CBO (100%), sexo (100%), idade (99,98%) e raça/cor (90,8%)</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableCompletude21">
+                  <thead>
+                    <tr>
+                      <th>Linha de Cuidado e Tipo</th>
+                      <th class="num-col">Registros</th>
+                      <th class="num-col">Qtd. Aprovada</th>
+                      <th class="num-col">Valor Aprovado</th>
+                      <th class="num-col">CID-10 Preenchido</th>
+                      <th class="num-col">CBO Preenchido</th>
+                      <th class="num-col">Sexo Preenchido</th>
+                      <th class="num-col">Idade Válida</th>
+                      <th class="num-col">Raça/Cor Preenchida</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Etapas de Processamento e Filtragem da Base</h3>
+                    <p class="card-subtitle">Rastreabilidade desde os arquivos brutos do DATASUS até o painel consolidado</p>
+                  </div>
+                </div>
+                <div class="clean-list">
+                  <div class="clean-list-item">
+                    <div>
+                      <strong>1. Registros Ambulatoriais Brutos (SIA/SUS 2022–2024)</strong>
+                      <div style="font-size:12px;color:var(--text-muted);">Varredura das 972 partições mensais das 27 UFs</div>
+                    </div>
+                    <span class="metric">1.779.894.079</span>
+                  </div>
+                  <div class="clean-list-item">
+                    <div>
+                      <strong>2. Filtro de Tecnologias Assistivas (Subgrupo 07.01 SIGTAP)</strong>
+                      <div style="font-size:12px;color:var(--text-muted);">167 códigos incluídos e 59 descartados por não pertencerem à reabilitação</div>
+                    </div>
+                    <span class="metric" style="color:var(--primary);">2.089.337 regs</span>
+                  </div>
+                  <div class="clean-list-item">
+                    <div>
+                      <strong>3. Exclusão de Rejeições Administrativas (Glosas)</strong>
+                      <div style="font-size:12px;color:var(--text-muted);">2.553.283 solicitados − 55.734 glosados (2,18% físico | 1,13% financeiro)</div>
+                    </div>
+                    <span class="metric" style="color:var(--rose);">−55.734 un.</span>
+                  </div>
+                  <div class="clean-list-item">
+                    <div>
+                      <strong>4. Separação entre Equipamentos e Atendimentos Clínicos</strong>
+                      <div style="font-size:12px;color:var(--text-muted);">2.167.191 equipamentos entregues + 330.358 atendimentos de adaptação</div>
+                    </div>
+                    <span class="metric" style="color:var(--emerald);">2.497.549 itens</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Parâmetros dos Modelos de Acesso e Intensidade</h3>
+                    <p class="card-subtitle">Fatores demográficos, econômicos e regionais avaliados nos 5.570 municípios</p>
+                  </div>
+                </div>
+                <div class="table-responsive" style="max-height:310px;overflow-y:auto;">
+                  <table class="sci-table" id="tableHurdle51">
+                    <thead>
+                      <tr>
+                        <th>Dimensão</th>
+                        <th>Etapa</th>
+                        <th>Fator</th>
+                        <th class="num-col">Coef.</th>
+                        <th class="num-col">OR / IRR</th>
+                        <th>IC 95%</th>
+                        <th class="num-col">p-valor</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden/Collapsible Epistemological Reference Table kept for data completeness -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Escopo de Monitoramento e Limites da Base Administrativa</h3>
+                  <p class="card-subtitle">O que os registros de faturamento do SUS permitem acompanhar e o que exige coleta complementar</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableMatrizEpistemologica">
+                  <thead>
+                    <tr>
+                      <th>Eixo de Acompanhamento</th>
+                      <th>Tipo de Análise</th>
+                      <th>Bases Integradas</th>
+                      <th>Questões Monitoradas</th>
+                      <th>Principais Indicadores</th>
+                      <th>Limites da Base (Não Capturado no SIA/SUS)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 7.3: RECORD & GATHER Compliance Checklists -->
+          <div id="aud-checklists" class="subview-panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Atendimento aos Critérios RECORD (Dados de Saúde Rotineiramente Coletados)</h3>
+                  <p class="card-subtitle">Conformidade com o documento RECORD Checklist.pdf da pasta documentos_base</p>
+                </div>
+                <span class="tag tag-ok">13 / 13 Critérios Atendidos</span>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableChecklistRecord">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Área</th>
+                      <th>Critério RECORD</th>
+                      <th>Como o Sistema Atende</th>
+                      <th>Módulo</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Atendimento aos Critérios GATHER (Transparência em Estimativas de Saúde)</h3>
+                  <p class="card-subtitle">Conformidade com o documento gather-checklist.pdf da pasta documentos_base</p>
+                </div>
+                <span class="tag tag-ok">18 / 18 Critérios Atendidos</span>
+              </div>
+              <div class="table-responsive">
+                <table class="sci-table" id="tableChecklistGather">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Área</th>
+                      <th>Critério GATHER</th>
+                      <th>Status</th>
+                      <th>Implementação no Sistema</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Load Audited Dataset & TypeScript Application Entrypoint -->
+  <script src="/data/dados_ta_sus_2022_2024.js"></script>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

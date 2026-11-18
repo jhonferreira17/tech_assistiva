@@ -1,0 +1,56 @@
+{
+  "name": "microdados-tecnologia-assistiva-sus-2022-2024",
+  "title": "Microdados de Tecnologia Assistiva no Sistema Único de Saúde (SUS) — Triênio 2022–2024",
+  "description": "Base censitária nacional auditada de provisão de Tecnologia Assistiva no SUS extraída de 1,78 bilhão de registros ambulatoriais (SIA/SUS), pareada ao Censo Demográfico 2022 e estabelecimentos CNES.",
+  "version": "1.0.0",
+  "homepage": "https://doi.org/10.5281/zenodo.placeholder",
+  "licenses": [
+    {
+      "name": "CC-BY-4.0",
+      "title": "Creative Commons Attribution 4.0 International",
+      "path": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  ],
+  "contributors": [
+    {
+      "title": "Profa. Dra. Carolina",
+      "role": "author",
+      "organization": "Universidade Federal do Rio de Janeiro (UFRJ)"
+    },
+    {
+      "title": "Prof. Dr. Hidelbrando Ferreira Rodrigues",
+      "role": "author",
+      "organization": "Universidade Federal do Amazonas (UFAM)"
+    }
+  ],
+  "resources": [
+    {
+      "name": "microdados_ta_sus_2022_2024_parquet",
+      "path": "microdados_ta_sus_2022_2024_parquet.zip",
+      "format": "parquet",
+      "mediatype": "application/x-parquet",
+      "description": "Conjunto de 972 partições em formato colunar Apache Parquet com 2.089.337 faturamentos de TA de 2022 a 2024."
+    },
+    {
+      "name": "tabela_correspondencia_sigtap_ta_validada",
+      "path": "tabelas_apoio/tabela_correspondencia_sigtap_ta_validada.csv",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "description": "Catálogo taxonômico dos 226 procedimentos auditados do subgrupo 07.01 do SIGTAP."
+    },
+    {
+      "name": "cnes_estabelecimentos_ta_2024",
+      "path": "tabelas_apoio/cnes_estabelecimentos_ta_2024.csv",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "description": "Cadastro dos 592 estabelecimentos de saúde faturantes de TA e habilitações CER em 2024."
+    },
+    {
+      "name": "painel_territorial_base",
+      "path": "tabelas_apoio/painel_territorial_base.csv",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "description": "Painel de 5.570 municípios brasileiros com população total e PcD do Censo Demográfico 2022."
+    }
+  ]
+}
