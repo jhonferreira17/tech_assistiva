@@ -516,8 +516,12 @@ export interface FiltroGlobalState {
   ano: 'ALL' | '2022' | '2023' | '2024';
   macro: 'ALL' | MacrorregiaoBrasil;
   uf: 'ALL' | string;
+  municipioCod: string;
+  municipioNome: string;
   modalidade: 'ALL' | ModalidadeISO9999;
   sigtapSearch: string;
   sigtapTipo: 'ALL' | 'Produto' | 'Procedimento' | 'ZERO';
   poloMunSearch: string;
+  top10Scope: 'UF' | 'MUNICIPIO';
+  top10Metric: 'taxa_1k_pcd' | 'ri' | 'prod';
 }

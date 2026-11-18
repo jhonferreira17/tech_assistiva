@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Acompanhamento de Tecnologias Assistivas — SUS</title>
+  <title>Observatório de dados sobre tecnologia assistiva — SUS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
     <aside class="sidebar" aria-label="Menu do Sistema">
       <div>
         <div class="brand-box">
-          <div class="brand-eyebrow">Monitoramento SUS</div>
-          <div class="brand-title">Mapa de Tecnologia Assistiva</div>
-          <div class="brand-meta">Sistema de Acompanhamento da Rede e Concessões (2022–2024)</div>
+          <div class="brand-eyebrow">SUS • Brasil (2022–2024)</div>
+          <div class="brand-title">Observatório de dados sobre tecnologia assistiva</div>
+          <div class="brand-meta">Monitoramento nacional da rede e concessões</div>
         </div>
 
         <div class="nav-section-label">Monitoramento</div>
@@ -101,6 +101,19 @@
             </select>
           </div>
           <div class="filter-item">
+            <label for="filterMunicipio">Município</label>
+            <input
+              type="text"
+              id="filterMunicipio"
+              list="municipiosDatalist"
+              class="filter-input"
+              placeholder="Buscar município (5.570)..."
+              autocomplete="off"
+              style="min-width:210px;"
+            />
+            <datalist id="municipiosDatalist"></datalist>
+          </div>
+          <div class="filter-item">
             <label for="filterModalidade">Linha de Cuidado</label>
             <select id="filterModalidade" class="filter-select">
               <option value="ALL">Todas as Tecnologias</option>
@@ -113,18 +126,18 @@
               <option value="TA06">Reabilitação Vocal (Laringe Eletrônica)</option>
             </select>
           </div>
-          <button class="btn" id="btnResetFilters">Limpar Filtros</button>
+          <button class="btn" id="btnResetFilters">Limpar</button>
         </div>
 
         <div class="topbar-actions">
           <button class="btn" id="btnQuickOpenMap" style="border-color:var(--primary);color:var(--primary);">
-            <span>🗺️ Abrir Mapa Origem → Destino</span>
+            <span>🗺️ Mapa &amp; Calor</span>
           </button>
           <button class="btn" id="btnExportCurrentCSV" title="Baixar dados filtrados em planilha CSV">
-            <span>📥 Exportar Planilha (CSV)</span>
+            <span>📥 CSV</span>
           </button>
           <a href="/data/dados_ta_sus_2022_2024.json" download="dados_ta_sus_2022_2024.json" class="btn btn-primary">
-            <span>📦 Baixar JSON</span>
+            <span>📦 JSON</span>
           </a>
         </div>
       </header>
@@ -171,6 +184,9 @@
           </div>
         </div>
 
+        <!-- Contextual Municipality Filter Summary Bar -->
+        <div id="muniSelectedBar" class="muni-selected-bar" aria-live="polite"></div>
+
         <!-- =================================================================
              MÓDULO 1 — PAINEL GERAL
              ================================================================= -->
@@ -214,6 +230,51 @@
                 </div>
                 <div class="chart-box">
                   <canvas id="chartModalidadesCap1"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ranking 10 Melhores e 10 Piores por Localidade -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">10 Melhores e 10 Piores por Localidade</h3>
+                  <p class="card-subtitle" id="top10Subtitle">Comparativo de desempenho assistencial por estado ou município polo</p>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                  <div class="filter-item">
+                    <label for="selectTop10Scope">Localidade</label>
+                    <select id="selectTop10Scope" class="filter-select">
+                      <option value="UF" selected>Estados (27 UFs)</option>
+                      <option value="MUNICIPIO">Municípios Polos (314)</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="selectTop10Metric">Indicador</label>
+                    <select id="selectTop10Metric" class="filter-select">
+                      <option value="taxa_1k_pcd" selected>Taxa por 1.000 PcD</option>
+                      <option value="ri">Índice de Acompanhamento (RI)</option>
+                      <option value="prod">Volume de Equipamentos</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="grid-2" style="margin-bottom:0;">
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                    ▲ 10 Melhores Localidades
+                  </div>
+                  <div class="chart-box" style="height:310px;">
+                    <canvas id="chartTop10Melhores"></canvas>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                    ▼ 10 Piores Localidades
+                  </div>
+                  <div class="chart-box" style="height:310px;">
+                    <canvas id="chartTop10Piores"></canvas>
+                  </div>
                 </div>
               </div>
             </div>
@@ -354,18 +415,26 @@
                     </select>
                   </div>
                   <div class="filter-item">
-                    <label for="mapSelectTileStyle">Camada Base</label>
+                    <label for="mapDisplayMode">Visualização</label>
+                    <select id="mapDisplayMode" class="filter-select">
+                      <option value="routes" selected>Rotas Origem → Destino</option>
+                      <option value="heatmap">Mapa de Calor (Heatmap)</option>
+                      <option value="both">Rotas + Mapa de Calor</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="mapSelectTileStyle">Mapa Base</label>
                     <select id="mapSelectTileStyle" class="filter-select">
-                      <option value="voyager" selected>CartoDB Voyager (Colorido)</option>
-                      <option value="osm">OpenStreetMap (Rodovias)</option>
-                      <option value="satellite">Satélite ESRI World Imagery</option>
-                      <option value="dark">Modo Escuro (Alto Contraste)</option>
+                      <option value="osm" selected>OpenStreetMap Padrão</option>
+                      <option value="osm_hot">OpenStreetMap Saúde (HOT)</option>
+                      <option value="voyager">Carto Voyager (Limpo)</option>
+                      <option value="satellite">Satélite</option>
+                      <option value="dark">Alto Contraste (Escuro)</option>
                     </select>
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <span class="tag tag-ok" id="mapApiStatusBadge">API IBGE &amp; OSRM Ativas (Sem API Key)</span>
-                  <button class="btn" id="btnMapResetBrazil">🌎 Ver Brasil Inteiro</button>
+                  <button class="btn" id="btnMapResetBrazil">🌎 Brasil Inteiro</button>
                 </div>
               </div>
 
@@ -375,23 +444,27 @@
                   <div class="od-legend">
                     <span class="od-legend-item">
                       <span class="legend-dot" style="background:#0284c7;"></span>
-                      <strong>Onde a pessoa mora</strong> (Município de Origem)
+                      <strong>Origem</strong> (Residência)
                     </span>
                     <span class="od-legend-item">
                       <span class="legend-dot" style="background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,0.22);"></span>
-                      <strong>Onde busca o recurso</strong> (Polo de Atendimento SUS)
+                      <strong>Destino</strong> (Polo SUS)
                     </span>
                     <span class="od-legend-item">
                       <span class="legend-line" style="background:#0284c7;"></span>
-                      Rota Regional (&lt; 100 km)
+                      &lt; 100 km
                     </span>
                     <span class="od-legend-item">
                       <span class="legend-line" style="background:#d97706;"></span>
-                      Média Distância (100–250 km)
+                      100–250 km
                     </span>
                     <span class="od-legend-item">
                       <span class="legend-line" style="background:#e11d48;"></span>
-                      Longa Distância (&gt; 250 km)
+                      &gt; 250 km
+                    </span>
+                    <span class="od-legend-item">
+                      <span style="display:inline-block;width:44px;height:8px;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#10b981,#f59e0b,#e11d48);"></span>
+                      Mapa de Calor (Densidade)
                     </span>
                   </div>
                 </div>
