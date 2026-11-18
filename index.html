@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -296,32 +297,100 @@
         </section>
 
         <!-- =================================================================
-             MÓDULO 2 — MAPA & COBERTURA TERRITORIAL
+             MÓDULO 2 — MAPA & COBERTURA TERRITORIAL (COM MAPA DINÂMICO ORIGEM-DESTINO)
              ================================================================= -->
         <section id="tab-territorio" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Mapa de Cobertura e Desigualdades Regionais</h2>
-              <p>Acompanhamento por estado, município e faixa de renda, cruzando as entregas do SUS com os 14,4 milhões de pessoas com deficiência do Censo IBGE 2022.</p>
+              <h2>Mapa Dinâmico de Origem e Destino e Cobertura por Estado</h2>
+              <p>Clique em qualquer Estado no mapa (ou nos cartões abaixo) para ver de onde os pacientes saem (moradia) e para onde vão buscar o recurso assistivo (polo de atendimento).</p>
             </div>
             <div class="segmented-control">
-              <button class="seg-btn active" data-target="terr-estados">Painel por Estado (27 UFs)</button>
+              <button class="seg-btn active" data-target="terr-estados">Mapa Origem → Destino &amp; Estados</button>
               <button class="seg-btn" data-target="terr-polos">Municípios Polos (314)</button>
               <button class="seg-btn" data-target="terr-equidade">Cobertura por Renda &amp; Vazios</button>
             </div>
           </div>
 
-          <!-- Sub-view 2.1: States Grid & Table -->
+          <!-- Sub-view 2.1: Interactive Origin-Destination Map + States Grid & Table -->
           <div id="terr-estados" class="subview-panel active">
-            <div class="insight-strip">
-              <strong>Filtro Interativo por Estado:</strong> Clique em qualquer unidade da federação abaixo para filtrar os indicadores de todo o sistema. Apenas <strong>5,6% dos municípios brasileiros (312)</strong> possuem serviço próprio de entrega e <strong>2,75% (140)</strong> contam com acompanhamento clínico local.
+            <div class="card">
+              <div class="od-map-toolbar">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <div class="filter-item">
+                    <label for="mapSelectUF">Estado no Mapa</label>
+                    <select id="mapSelectUF" class="filter-select">
+                      <option value="ALL">Brasil (Principais Rotas Nacionais)</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="mapSelectPolo">Polo de Destino</label>
+                    <select id="mapSelectPolo" class="filter-select" style="max-width:260px;">
+                      <option value="ALL">Todos os Polos de Destino</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="mapSelectMod">Recurso Buscado</label>
+                    <select id="mapSelectMod" class="filter-select">
+                      <option value="ALL">Todos os Recursos Assistivos</option>
+                      <option value="TA01">Locomoção (Cadeiras de Rodas / Andadores)</option>
+                      <option value="TA04">Audição (Aparelhos Auditivos / FM)</option>
+                      <option value="TA02">Órteses Ortopédicas</option>
+                      <option value="TA03">Próteses de Membros</option>
+                      <option value="TA05">Visão e Baixa Visão</option>
+                      <option value="TA10">Adequação Postural</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="mapSelectLimit">Rotas Visíveis</label>
+                    <select id="mapSelectLimit" class="filter-select">
+                      <option value="25">Top 25 Rotas</option>
+                      <option value="45" selected>Top 45 Rotas</option>
+                      <option value="80">Top 80 Rotas</option>
+                      <option value="120">Todas as Principais (120)</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="btn" id="btnMapResetBrazil">🌎 Ver Brasil Inteiro</button>
+              </div>
+
+              <div class="od-map-layout">
+                <div>
+                  <div id="odLeafletMap" class="od-map-canvas"></div>
+                  <div class="od-legend">
+                    <span class="od-legend-item">
+                      <span class="legend-dot" style="background:#0284c7;"></span>
+                      <strong>Onde a pessoa mora</strong> (Município de Origem)
+                    </span>
+                    <span class="od-legend-item">
+                      <span class="legend-dot" style="background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,0.22);"></span>
+                      <strong>Onde busca o recurso</strong> (Polo de Atendimento SUS)
+                    </span>
+                    <span class="od-legend-item">
+                      <span class="legend-line" style="background:#0284c7;"></span>
+                      Rota Regional (&lt; 100 km)
+                    </span>
+                    <span class="od-legend-item">
+                      <span class="legend-line" style="background:#d97706;"></span>
+                      Média Distância (100–250 km)
+                    </span>
+                    <span class="od-legend-item">
+                      <span class="legend-line" style="background:#e11d48;"></span>
+                      Longa Distância (&gt; 250 km)
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Right Side Inspector Panel -->
+                <div id="mapInspectorPanel" style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:18px;"></div>
+              </div>
             </div>
 
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Monitoramento por Unidade da Federação</h3>
-                  <p class="card-subtitle">Equipamentos entregues, taxa por 1.000 pessoas com deficiência e índice de acompanhamento (RI)</p>
+                  <h3 class="card-title">Selecione um Estado para Focalizar o Mapa de Origem e Destino (27 UFs)</h3>
+                  <p class="card-subtitle">Ao clicar em qualquer cartão abaixo, o mapa acima dá zoom no estado e exibe todas as rotas dos pacientes</p>
                 </div>
                 <span class="tag tag-prod" id="badgeUfTableYear">Consolidado</span>
               </div>
@@ -1250,8 +1319,10 @@ ORDER BY ano, tipo_registro;</textarea>
     </div>
   </div>
 
-  <!-- Load Audited Dataset & TypeScript Application Entrypoint -->
+  <!-- Load Audited Dataset, GeoJSON States, O-D Map Flows & TypeScript Entrypoint -->
   <script src="/data/dados_ta_sus_2022_2024.js"></script>
+  <script src="/data/br_estados.js"></script>
+  <script src="/data/fluxos_od_mapa.js"></script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

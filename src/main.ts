@@ -5,6 +5,7 @@
  */
 
 import Chart from 'chart.js/auto';
+import { MapaOrigemDestinoController } from './components/mapaOrigemDestino';
 import type {
   BaseDadosObservatorioTASUS,
   CuboUfAnoModalidade,
@@ -46,6 +47,13 @@ const state: FiltroGlobalState = {
 };
 
 const charts: Record<string, Chart> = {};
+
+const odMapController = new MapaOrigemDestinoController((selectedUf: string) => {
+  state.uf = selectedUf;
+  const selUF = getEl<HTMLSelectElement>('filterUF');
+  if (selUF) selUF.value = state.uf;
+  refreshAll();
+});
 
 function getEl<T extends HTMLElement = HTMLElement>(id: string): T | null {
   return document.getElementById(id) as T | null;
@@ -588,6 +596,8 @@ function renderStaticAndDynamicTables(): void {
       state.uf = state.uf === clickedUf ? 'ALL' : clickedUf;
       const selUF = getEl<HTMLSelectElement>('filterUF');
       if (selUF) selUF.value = state.uf;
+      odMapController.selectState(state.uf, true);
+      document.getElementById('odLeafletMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       refreshAll();
     });
   });
@@ -1270,6 +1280,10 @@ function bindEvents(): void {
       if (targetId) {
         const target = getEl(targetId);
         if (target) target.classList.add('active');
+        if (targetId === 'tab-territorio') {
+          odMapController.initMap('odLeafletMap');
+          odMapController.invalidateSize();
+        }
       }
     });
   });
@@ -1314,6 +1328,7 @@ function bindEvents(): void {
 
   getEl<HTMLSelectElement>('filterUF')?.addEventListener('change', e => {
     state.uf = (e.target as HTMLSelectElement).value;
+    odMapController.selectState(state.uf, true);
     refreshAll();
   });
 
@@ -1335,6 +1350,7 @@ function bindEvents(): void {
     if (fMac) fMac.value = 'ALL';
     if (fUf) fUf.value = 'ALL';
     if (fMod) fMod.value = 'ALL';
+    odMapController.selectState('ALL', true);
     refreshAll();
   });
 
@@ -1462,4 +1478,5 @@ function bindEvents(): void {
 // Initialize TypeScript App
 initSelectors();
 bindEvents();
+odMapController.initMap('odLeafletMap');
 refreshAll();
