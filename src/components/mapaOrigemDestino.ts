@@ -1,7 +1,11 @@
 /**
  * Componente em TypeScript: Mapa Dinâmico de Origem e Destino de Tecnologias Assistivas no SUS
- * Permite clicar em qualquer Estado (UF), Polo de Atendimento (Destino) ou Município de Moradia (Origem)
- * para visualizar de onde o paciente sai e para onde ele vai buscar o recurso assistivo.
+ * Integra 3 APIs Públicas e 100% Gratuitas (Sem necessidade de API Key):
+ * 1. API Oficial de Malhas Geográficas do IBGE (servicodados.ibge.gov.br/api/v3/malhas/estados/{UF})
+ *    -> Carrega sob demanda o polígono real de todos os municípios do Estado clicado.
+ * 2. API Gratuita de Rotas Rodoviárias OSRM (router.project-osrm.org/route/v1/driving/)
+ *    -> Calcula e desenha no mapa o trajeto rodoviário real, distância por estrada e tempo de viagem do paciente.
+ * 3. Provedores de Mapas Base Gratuitos (CartoDB Voyager, OpenStreetMap Oficial, Satélite ESRI e Dark Matter).
  */
 
 import L from 'leaflet';
@@ -52,6 +56,7 @@ export interface MapaODPayload {
   polos: PoloOD[];
   top_nacional: RotaOD[];
   rotas_por_uf: Record<string, RotaOD[]>;
+  municipios_ibge?: Record<string, [string, string, number, string, number, number]>;
 }
 
 declare global {
@@ -60,6 +65,33 @@ declare global {
     BR_ESTADOS_GEOJSON?: any;
   }
 }
+
+const UF_IBGE_CODE: Record<string, number> = {
+  RO: 11, AC: 12, AM: 13, RR: 14, PA: 15, AP: 16, TO: 17,
+  MA: 21, PI: 22, CE: 23, RN: 24, PB: 25, PE: 26, AL: 27, SE: 28, BA: 29,
+  MG: 31, ES: 32, RJ: 33, SP: 35,
+  PR: 41, SC: 42, RS: 43,
+  MS: 50, MT: 51, GO: 52, DF: 53
+};
+
+const TILE_PROVIDERS: Record<string, { url: string; attribution: string }> = {
+  voyager: {
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap &copy; CARTO | API Malhas IBGE & OSRM'
+  },
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap Contributors | API Malhas IBGE & OSRM'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; Esri World Imagery | API Malhas IBGE & OSRM'
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap &copy; CARTO Dark | API Malhas IBGE & OSRM'
+  }
+};
 
 const MOD_NAMES: Record<string, string> = {
   TA01: 'Locomoção (Cadeiras de Rodas / Andadores)',
@@ -75,10 +107,13 @@ const fmtInt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const fmtDec1 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-/**
- * Calcula pontos de uma curva Bézier quadrática entre (lat1, lon1) e (lat2, lon2)
- * para desenhar arcos elegantes de deslocamento Origem -> Destino no Leaflet.
- */
+function formatDurationSeconds(sec: number): string {
+  const hours = Math.floor(sec / 3600);
+  const mins = Math.round((sec % 3600) / 60);
+  if (hours <= 0) return `${mins} min`;
+  return `${hours}h ${mins}min`;
+}
+
 function getCurvedLatLngs(
   lat1: number,
   lon1: number,
@@ -90,7 +125,6 @@ function getCurvedLatLngs(
   const lonMid = (lon1 + lon2) / 2;
   const dLat = lat2 - lat1;
   const dLon = lon2 - lon1;
-  // Offset perpendicular suave para criar o arco
   const curvature = 0.18;
   const ctrlLat = latMid - dLon * curvature;
   const ctrlLon = lonMid + dLat * curvature;
@@ -107,16 +141,21 @@ function getCurvedLatLngs(
 }
 
 function getRouteColor(distKm: number): string {
-  if (distKm >= 250) return '#e11d48'; // Longa distância (>250 km) - Rose
-  if (distKm >= 100) return '#d97706'; // Média distância (100-250 km) - Amber
-  return '#0284c7'; // Regional (<100 km) - Blue
+  if (distKm >= 250) return '#e11d48';
+  if (distKm >= 100) return '#d97706';
+  return '#0284c7';
 }
 
 export class MapaOrigemDestinoController {
   private map: L.Map | null = null;
+  private currentTileLayer: L.TileLayer | null = null;
   private statesLayer: L.GeoJSON | null = null;
+  private ibgeMuniLayer: L.GeoJSON | null = null;
   private arcsLayer: L.LayerGroup = L.layerGroup();
+  private osrmRoadLayer: L.LayerGroup = L.layerGroup();
   private markersLayer: L.LayerGroup = L.layerGroup();
+
+  private ibgeMeshCache: Map<string, any> = new Map();
 
   private currentUF: string = 'ALL';
   private currentMod: string = 'ALL';
@@ -136,23 +175,31 @@ export class MapaOrigemDestinoController {
       center: [-14.2, -52.0],
       zoom: 4,
       minZoom: 3,
-      maxZoom: 12,
+      maxZoom: 14,
       zoomControl: true
     });
 
-    // Basemap CartoDB Positron (limpo e ideal para visualização de fluxos)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO | Dados SIA/SUS & Censo IBGE 2022',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(this.map);
-
+    this.setBaseTileLayer('voyager');
     this.renderBrazilStatesGeoJSON();
     this.arcsLayer.addTo(this.map);
+    this.osrmRoadLayer.addTo(this.map);
     this.markersLayer.addTo(this.map);
 
     this.bindMapControls();
     this.updateView('ALL');
+  }
+
+  public setBaseTileLayer(providerKey: string): void {
+    if (!this.map) return;
+    const cfg = TILE_PROVIDERS[providerKey] || TILE_PROVIDERS.voyager;
+    if (this.currentTileLayer) {
+      this.map.removeLayer(this.currentTileLayer);
+    }
+    this.currentTileLayer = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: 19
+    }).addTo(this.map);
+    this.currentTileLayer.bringToBack();
   }
 
   public invalidateSize(): void {
@@ -175,26 +222,21 @@ export class MapaOrigemDestinoController {
           color: isSelected ? '#0284c7' : '#64748b',
           weight: isSelected ? 2.5 : 1,
           fillColor: isSelected ? '#0284c7' : '#94a3b8',
-          fillOpacity: isSelected ? 0.08 : 0.04
+          fillOpacity: isSelected ? 0.04 : 0.03
         };
       },
       onEachFeature: (feature, layer) => {
         const sigla = feature?.properties?.sigla || '';
         const nome = feature?.properties?.nome || sigla;
 
-        layer.bindTooltip(`<strong>${nome} (${sigla})</strong><br/>Clique para ver as rotas de pacientes deste estado`, {
-          sticky: true,
-          direction: 'top',
-          className: 'map-state-tooltip'
-        });
+        layer.bindTooltip(
+          `<strong>${nome} (${sigla})</strong><br/>Clique para carregar a malha municipal do IBGE e as rotas de pacientes`,
+          { sticky: true, direction: 'top' }
+        );
 
         layer.on('mouseover', () => {
           if (this.currentUF !== sigla) {
-            (layer as L.Path).setStyle({
-              weight: 2,
-              color: '#0284c7',
-              fillOpacity: 0.12
-            });
+            (layer as L.Path).setStyle({ weight: 2, color: '#0284c7', fillOpacity: 0.1 });
           }
         });
 
@@ -213,9 +255,158 @@ export class MapaOrigemDestinoController {
     }).addTo(this.map);
   }
 
+  /**
+   * Busca a malha municipal oficial na API Gratuita do IBGE (servicodados.ibge.gov.br)
+   * quando o usuário clica em um Estado!
+   */
+  private async loadIbgeMunicipalMeshForState(uf: string): Promise<void> {
+    if (!this.map) return;
+    if (this.ibgeMuniLayer) {
+      this.map.removeLayer(this.ibgeMuniLayer);
+      this.ibgeMuniLayer = null;
+    }
+
+    if (uf === 'ALL' || !UF_IBGE_CODE[uf]) {
+      this.setApiStatusBadge('API IBGE: Visão Nacional (27 UFs)');
+      return;
+    }
+
+    const ibgeCode = UF_IBGE_CODE[uf];
+    this.setApiStatusBadge(`Carregando malha municipal do IBGE para ${uf}...`);
+
+    try {
+      let geojsonData = this.ibgeMeshCache.get(uf);
+      if (!geojsonData) {
+        const url = `https://servicodados.ibge.gov.br/api/v3/malhas/estados/${ibgeCode}?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        geojsonData = await resp.json();
+        this.ibgeMeshCache.set(uf, geojsonData);
+      }
+
+      if (this.currentUF !== uf) return; // User already switched to another UF
+
+      const payload = window.MAPA_OD_SUS;
+      const munDict = payload?.municipios_ibge || {};
+      const polosSet = new Set((payload?.polos || []).filter(p => p.uf === uf).map(p => p.cod));
+      const allUfRoutes = payload?.rotas_por_uf[uf] || [];
+
+      const origensMap = new Map<string, RotaOD[]>();
+      allUfRoutes.forEach(r => {
+        if (!origensMap.has(r.c_orig)) origensMap.set(r.c_orig, []);
+        origensMap.get(r.c_orig)!.push(r);
+      });
+
+      this.ibgeMuniLayer = L.geoJSON(geojsonData, {
+        style: feature => {
+          const cod7 = String(feature?.properties?.codarea || '');
+          const cod6 = cod7.slice(0, 6);
+          const isPolo = polosSet.has(cod6);
+          const isOrigem = origensMap.has(cod6);
+
+          if (isPolo) {
+            return {
+              color: '#059669',
+              weight: 1.8,
+              fillColor: '#10b981',
+              fillOpacity: 0.28
+            };
+          }
+          if (isOrigem) {
+            return {
+              color: '#0284c7',
+              weight: 1,
+              fillColor: '#38bdf8',
+              fillOpacity: 0.14
+            };
+          }
+          return {
+            color: '#94a3b8',
+            weight: 0.6,
+            fillColor: '#cbd5e1',
+            fillOpacity: 0.05
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const cod7 = String(feature?.properties?.codarea || '');
+          const cod6 = cod7.slice(0, 6);
+          const meta = munDict[cod6];
+          const nomeMun = meta ? meta[0] : `Município IBGE ${cod7}`;
+          const pcdMun = meta ? meta[2] : 0;
+          const rsMun = meta ? meta[3] : '—';
+          const isPolo = polosSet.has(cod6);
+          const rotasSaida = origensMap.get(cod6) || [];
+
+          const roleBadge = isPolo
+            ? `<span style="color:#059669;font-weight:700;">★ Município Polo Ofertante SUS</span>`
+            : rotasSaida.length > 0
+            ? `<span style="color:#0284c7;font-weight:700;">● Município de Origem (${rotasSaida.length} destino[s])</span>`
+            : `<span style="color:#64748b;">Município do Estado</span>`;
+
+          layer.bindTooltip(
+            `<div style="font-size:12px;line-height:1.4;">
+              ${roleBadge}<br/>
+              <strong>${nomeMun} (${uf})</strong><br/>
+              Região de Saúde: ${rsMun}<br/>
+              População c/ Deficiência (Censo 2022): <strong>${fmtInt.format(pcdMun)}</strong>
+            </div>`,
+            { sticky: true, direction: 'top' }
+          );
+
+          layer.on('mouseover', () => {
+            (layer as L.Path).setStyle({ weight: 2.2, fillOpacity: 0.35 });
+          });
+
+          layer.on('mouseout', () => {
+            this.ibgeMuniLayer?.resetStyle(layer as L.Path);
+          });
+
+          layer.on('click', (e: L.LeafletMouseEvent) => {
+            L.DomEvent.stopPropagation(e);
+            if (isPolo && payload) {
+              const poloObj = payload.polos.find(p => p.cod === cod6);
+              if (poloObj) {
+                this.selectedPoloCod = this.selectedPoloCod === cod6 ? 'ALL' : cod6;
+                const selPolo = document.getElementById('mapSelectPolo') as HTMLSelectElement | null;
+                if (selPolo) selPolo.value = this.selectedPoloCod;
+                this.updateView();
+                this.renderPoloDetailCard(poloObj);
+                return;
+              }
+            }
+            if (rotasSaida.length > 0) {
+              const totSaida = rotasSaida.reduce((acc, r) => acc + r.prod + r.proc, 0);
+              this.renderOriginDetailCard({
+                cod: cod6,
+                nome: nomeMun,
+                uf,
+                pcd: pcdMun,
+                destinos: rotasSaida,
+                totalSaida: totSaida
+              });
+            }
+          });
+        }
+      }).addTo(this.map);
+
+      // Keep arcs and markers above the IBGE polygons
+      this.ibgeMuniLayer.bringToBack();
+      this.statesLayer?.bringToBack();
+      this.setApiStatusBadge(`✓ Malha IBGE (${geojsonData.features?.length || 0} municípios de ${uf}) ativa`);
+    } catch (_err) {
+      this.setApiStatusBadge(`Malha estadual ativa (${uf})`);
+    }
+  }
+
+  private setApiStatusBadge(text: string): void {
+    const el = document.getElementById('mapApiStatusBadge');
+    if (el) el.textContent = text;
+  }
+
   public selectState(uf: string, triggerFly = true): void {
     this.currentUF = uf;
     this.selectedPoloCod = 'ALL';
+    this.osrmRoadLayer.clearLayers();
 
     const selUfMap = document.getElementById('mapSelectUF') as HTMLSelectElement | null;
     if (selUfMap && selUfMap.value !== uf) {
@@ -230,7 +421,7 @@ export class MapaOrigemDestinoController {
         color: isSelected ? '#0284c7' : '#64748b',
         weight: isSelected ? 2.5 : 1,
         fillColor: isSelected ? '#0284c7' : '#94a3b8',
-        fillOpacity: isSelected ? 0.08 : 0.03
+        fillOpacity: isSelected ? 0.04 : 0.03
       };
     });
 
@@ -240,8 +431,8 @@ export class MapaOrigemDestinoController {
         this.map.flyTo([-14.5, -52.0], 4, { duration: 0.8 });
       } else {
         const b = payload.uf_bounds[uf];
-        const padLat = Math.max(0.4, (b.max_lat - b.min_lat) * 0.15);
-        const padLon = Math.max(0.4, (b.max_lon - b.min_lon) * 0.15);
+        const padLat = Math.max(0.35, (b.max_lat - b.min_lat) * 0.14);
+        const padLon = Math.max(0.35, (b.max_lon - b.min_lon) * 0.14);
         this.map.flyToBounds(
           [
             [b.min_lat - padLat, b.min_lon - padLon],
@@ -252,6 +443,7 @@ export class MapaOrigemDestinoController {
       }
     }
 
+    void this.loadIbgeMunicipalMeshForState(uf);
     this.updateView(uf);
   }
 
@@ -286,7 +478,6 @@ export class MapaOrigemDestinoController {
       baseRoutes = baseRoutes.filter(r => (r.mods[this.currentMod] || 0) > 0);
     }
 
-    // Sort by volume in selected modality (or total)
     const sorted = [...baseRoutes].sort((a, b) => {
       const volA = this.currentMod === 'ALL' ? a.prod + a.proc : a.mods[this.currentMod] || 0;
       const volB = this.currentMod === 'ALL' ? b.prod + b.proc : b.mods[this.currentMod] || 0;
@@ -300,6 +491,7 @@ export class MapaOrigemDestinoController {
     if (!this.map || !window.MAPA_OD_SUS) return;
 
     this.arcsLayer.clearLayers();
+    this.osrmRoadLayer.clearLayers();
     this.markersLayer.clearLayers();
 
     const routes = this.getActiveRoutes();
@@ -326,7 +518,6 @@ export class MapaOrigemDestinoController {
       return Math.max(acc, v);
     }, 1);
 
-    // 1. Draw Curved Flow Arcs (Origem -> Destino)
     routes.forEach(r => {
       const vol = this.currentMod === 'ALL' ? r.prod + r.proc : r.mods[this.currentMod] || 0;
       if (vol <= 0) return;
@@ -349,13 +540,13 @@ export class MapaOrigemDestinoController {
       origEntry.totalSaida += vol;
 
       const latlngs = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d);
-      const weight = Math.max(1.8, Math.min(6.5, 1.8 + (vol / maxVol) * 4.7));
+      const weight = Math.max(2.0, Math.min(6.5, 2.0 + (vol / maxVol) * 4.5));
       const color = getRouteColor(r.dist_km);
 
       const polyline = L.polyline(latlngs, {
         color,
         weight,
-        opacity: 0.72,
+        opacity: 0.78,
         className: 'od-flow-arc'
       });
 
@@ -363,7 +554,8 @@ export class MapaOrigemDestinoController {
         `<div style="font-size:12px;line-height:1.45;">
           <strong>De: ${r.n_orig} (${r.uf_orig})</strong><br/>
           <strong>Para: ${r.n_dest} (${r.uf_dest})</strong><br/>
-          Distância: <strong>${fmtDec1.format(r.dist_km)} km</strong> • Itens: <strong>${fmtInt.format(vol)}</strong>
+          Distância linear: <strong>${fmtDec1.format(r.dist_km)} km</strong> • Itens: <strong>${fmtInt.format(vol)}</strong><br/>
+          <span style="color:#4f46e5;font-weight:600;">Clique para traçar a rota rodoviária real (OSRM)</span>
         </div>`,
         { sticky: true }
       );
@@ -372,19 +564,17 @@ export class MapaOrigemDestinoController {
         polyline.setStyle({ weight: weight + 2, opacity: 1.0 });
       });
       polyline.on('mouseout', () => {
-        polyline.setStyle({ weight, opacity: 0.72 });
+        polyline.setStyle({ weight, opacity: 0.78 });
       });
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
-        this.renderRouteDetailCard(r);
+        void this.renderRouteDetailCardWithOSRM(r);
       });
 
       this.arcsLayer.addLayer(polyline);
     });
 
-    // 2. Draw Origin Municipality Markers (Blue circles = onde a pessoa mora)
     activeOrigins.forEach(orig => {
-      // If an origin is also an active destination hub, we draw it as a hub below
       if (activeDests.has(orig.cod)) return;
 
       const radius = Math.max(4.5, Math.min(9.5, 4.5 + Math.log10(orig.totalSaida + 1) * 1.4));
@@ -393,7 +583,7 @@ export class MapaOrigemDestinoController {
         fillColor: '#0284c7',
         color: '#ffffff',
         weight: 1.5,
-        fillOpacity: 0.9
+        fillOpacity: 0.92
       });
 
       marker.bindTooltip(
@@ -413,23 +603,21 @@ export class MapaOrigemDestinoController {
       this.markersLayer.addLayer(marker);
     });
 
-    // 3. Draw Destination Hub Markers (Green/Gold circles with halo = onde a pessoa vai buscar o recurso)
     activeDests.forEach(cDest => {
       const polo = polosMap.get(cDest);
       if (!polo) return;
 
-      // Outer pulse halo
       const halo = L.circleMarker([polo.lat, polo.lon], {
-        radius: 14,
+        radius: 15,
         fillColor: '#059669',
         color: '#059669',
         weight: 1,
-        fillOpacity: 0.22
+        fillOpacity: 0.24
       });
       this.markersLayer.addLayer(halo);
 
       const hubMarker = L.circleMarker([polo.lat, polo.lon], {
-        radius: 8,
+        radius: 8.5,
         fillColor: '#059669',
         color: '#ffffff',
         weight: 2.2,
@@ -457,8 +645,55 @@ export class MapaOrigemDestinoController {
       this.markersLayer.addLayer(hubMarker);
     });
 
-    // Update Summary Side Panel if no specific click or show default top route/hub
     this.renderStateOverviewCard(routes, activeOrigins.size, activeDests.size);
+  }
+
+  /**
+   * Consulta a API Gratuita OSRM (router.project-osrm.org) para desenhar a rota rodoviária real
+   * e informar distância por estrada e tempo estimado de viagem!
+   */
+  private async renderRouteDetailCardWithOSRM(r: RotaOD): Promise<void> {
+    this.renderRouteDetailCard(r, { loading: true });
+    this.osrmRoadLayer.clearLayers();
+
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${r.lon_o},${r.lat_o};${r.lon_d},${r.lat_d}?overview=full&geometries=geojson`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const roadKm = route.distance / 1000.0;
+        const durationStr = formatDurationSeconds(route.duration);
+
+        const roadGeo = L.geoJSON(route.geometry, {
+          style: {
+            color: '#4f46e5',
+            weight: 4.5,
+            opacity: 0.95
+          }
+        });
+        roadGeo.bindTooltip(
+          `<strong>Trajeto Rodoviário Real (API OSRM)</strong><br/>${r.n_orig} → ${r.n_dest}: <strong>${fmtDec1.format(roadKm)} km</strong> (~${durationStr})`,
+          { sticky: true }
+        );
+        this.osrmRoadLayer.addLayer(roadGeo);
+
+        this.renderRouteDetailCard(r, {
+          loading: false,
+          roadKm,
+          durationStr
+        });
+        return;
+      }
+    } catch (_e) {
+      // Fallback if river/ferry route in Amazon has no continuous road
+    }
+
+    this.renderRouteDetailCard(r, {
+      loading: false,
+      noRoad: true
+    });
   }
 
   private renderStateOverviewCard(routes: RotaOD[], nOrigens: number, nPolos: number): void {
@@ -466,7 +701,6 @@ export class MapaOrigemDestinoController {
     if (!panel) return;
 
     const totalItens = routes.reduce((acc, r) => acc + r.prod + r.proc, 0);
-    const totalVal = routes.reduce((acc, r) => acc + r.val, 0);
     const distPond =
       totalItens > 0
         ? routes.reduce((acc, r) => acc + r.dist_km * (r.prod + r.proc), 0) / totalItens
@@ -500,7 +734,7 @@ export class MapaOrigemDestinoController {
       <div style="border-bottom:1px solid var(--border-light);padding-bottom:12px;margin-bottom:14px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--primary);letter-spacing:0.05em;">Resumo do Deslocamento</div>
         <h4 style="font-size:16px;font-weight:800;margin-top:2px;">${ufLabel}</h4>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Clique em qualquer estado no mapa, em uma cidade azul (origem), em um polo verde (destino) ou em uma linha de rota.</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Clique em qualquer estado para carregar os municípios via <strong>API do IBGE</strong>, ou clique em uma rota para traçar a estrada via <strong>API OSRM</strong>.</p>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -530,8 +764,8 @@ export class MapaOrigemDestinoController {
           : ''
       }
 
-      <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">Principais Rotas Origem → Destino (Clique para inspecionar):</div>
-      <div style="display:flex;flex-direction:column;gap:8px;max-height:290px;overflow-y:auto;">
+      <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">Principais Rotas Origem → Destino (Clique para traçar rodovia):</div>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
         ${top5ListHtml || '<div style="font-size:12px;color:var(--text-muted);">Nenhuma rota encontrada para este filtro.</div>'}
       </div>
     `;
@@ -541,7 +775,7 @@ export class MapaOrigemDestinoController {
         const idx = Number(el.getAttribute('data-route-idx') || 0);
         const r = routes[idx];
         if (r) {
-          this.renderRouteDetailCard(r);
+          void this.renderRouteDetailCardWithOSRM(r);
           this.map?.flyToBounds(
             [
               [Math.min(r.lat_o, r.lat_d) - 0.3, Math.min(r.lon_o, r.lon_d) - 0.3],
@@ -554,7 +788,10 @@ export class MapaOrigemDestinoController {
     });
   }
 
-  private renderRouteDetailCard(r: RotaOD): void {
+  private renderRouteDetailCard(
+    r: RotaOD,
+    osrmInfo?: { loading?: boolean; roadKm?: number; durationStr?: string; noRoad?: boolean }
+  ): void {
     const panel = document.getElementById('mapInspectorPanel');
     if (!panel) return;
 
@@ -570,6 +807,24 @@ export class MapaOrigemDestinoController {
       )
       .join('');
 
+    let osrmBoxHtml = '';
+    if (osrmInfo?.loading) {
+      osrmBoxHtml = `<div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;">Calculando rota rodoviária real via API OSRM...</div>`;
+    } else if (osrmInfo?.roadKm && osrmInfo?.durationStr) {
+      osrmBoxHtml = `
+        <div style="font-size:12px;padding:10px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;">
+          <strong>🛣️ Trajeto Rodoviário Real (API OSRM):</strong><br/>
+          Distância por estrada: <strong>${fmtDec1.format(osrmInfo.roadKm)} km</strong> • Tempo estimado: <strong>~${osrmInfo.durationStr}</strong>
+        </div>
+      `;
+    } else if (osrmInfo?.noRoad) {
+      osrmBoxHtml = `
+        <div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--amber-soft);color:var(--amber);margin-bottom:12px;">
+          <strong>⛴️ Deslocamento Fluvial / Aéreo / Sem Rodovia Direta:</strong> Distância geodésica linear de <strong>${fmtDec1.format(r.dist_km)} km</strong>.
+        </div>
+      `;
+    }
+
     panel.innerHTML = `
       <div style="border-bottom:1px solid var(--border-light);padding-bottom:12px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -580,6 +835,8 @@ export class MapaOrigemDestinoController {
           ${r.n_orig} (${r.uf_orig}) → ${r.n_dest} (${r.uf_dest})
         </h4>
       </div>
+
+      ${osrmBoxHtml}
 
       <div class="clean-list" style="margin-bottom:14px;">
         <div class="clean-list-item">
@@ -618,6 +875,7 @@ export class MapaOrigemDestinoController {
     `;
 
     document.getElementById('btnBackToOverview')?.addEventListener('click', () => {
+      this.osrmRoadLayer.clearLayers();
       this.updateView();
     });
   }
@@ -635,8 +893,8 @@ export class MapaOrigemDestinoController {
 
     const destsHtml = orig.destinos
       .map(
-        r => `
-      <div style="padding:9px 11px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-hover);">
+        (r, idx) => `
+      <div class="orig-dest-card" data-orig-dest-idx="${idx}" style="padding:9px 11px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-hover);cursor:pointer;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
           <span>Vai para: <strong style="color:var(--emerald);">${r.n_dest} (${r.uf_dest})</strong></span>
           <span class="tag tag-zero">${fmtDec1.format(r.dist_km)} km</span>
@@ -662,14 +920,23 @@ export class MapaOrigemDestinoController {
       </div>
 
       <div style="font-size:12.5px;margin-bottom:10px;">
-        Os moradores de <strong>${orig.nome}</strong> viajaram para buscar <strong>${fmtInt.format(orig.totalSaida)}</strong> recursos assistivos nos seguintes polos:
+        Os moradores de <strong>${orig.nome}</strong> viajaram para buscar <strong>${fmtInt.format(orig.totalSaida)}</strong> recursos assistivos nos seguintes polos (clique para ver a rota rodoviária):
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;">
         ${destsHtml}
       </div>
     `;
 
+    panel.querySelectorAll('.orig-dest-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const i = Number(el.getAttribute('data-orig-dest-idx') || 0);
+        const r = orig.destinos[i];
+        if (r) void this.renderRouteDetailCardWithOSRM(r);
+      });
+    });
+
     document.getElementById('btnBackToOverview')?.addEventListener('click', () => {
+      this.osrmRoadLayer.clearLayers();
       this.updateView();
     });
   }
@@ -768,6 +1035,10 @@ export class MapaOrigemDestinoController {
     document.getElementById('mapSelectLimit')?.addEventListener('change', e => {
       this.maxRoutes = Number((e.target as HTMLSelectElement).value || 45);
       this.updateView();
+    });
+
+    document.getElementById('mapSelectTileStyle')?.addEventListener('change', e => {
+      this.setBaseTileLayer((e.target as HTMLSelectElement).value);
     });
 
     document.getElementById('btnMapResetBrazil')?.addEventListener('click', () => {

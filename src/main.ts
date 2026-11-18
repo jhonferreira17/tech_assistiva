@@ -1370,6 +1370,14 @@ function bindEvents(): void {
     renderPolosMunicipaisRDS();
   });
 
+  // Quick Open Map button in Topbar
+  getEl('btnQuickOpenMap')?.addEventListener('click', () => {
+    const mapTabBtn = document.querySelector('.nav-tab[data-tab="tab-territorio"]') as HTMLElement | null;
+    if (mapTabBtn) {
+      mapTabBtn.click();
+    }
+  });
+
   // Theme Toggle (Default is Clean Light Mode, toggles Dark Mode)
   getEl('btnToggleTheme')?.addEventListener('click', () => {
     document.body.classList.toggle('dark-theme');

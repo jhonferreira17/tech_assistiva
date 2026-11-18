@@ -117,6 +117,9 @@
         </div>
 
         <div class="topbar-actions">
+          <button class="btn" id="btnQuickOpenMap" style="border-color:var(--primary);color:var(--primary);">
+            <span>🗺️ Abrir Mapa Origem → Destino</span>
+          </button>
           <button class="btn" id="btnExportCurrentCSV" title="Baixar dados filtrados em planilha CSV">
             <span>📥 Exportar Planilha (CSV)</span>
           </button>
@@ -350,8 +353,20 @@
                       <option value="120">Todas as Principais (120)</option>
                     </select>
                   </div>
+                  <div class="filter-item">
+                    <label for="mapSelectTileStyle">Camada Base</label>
+                    <select id="mapSelectTileStyle" class="filter-select">
+                      <option value="voyager" selected>CartoDB Voyager (Colorido)</option>
+                      <option value="osm">OpenStreetMap (Rodovias)</option>
+                      <option value="satellite">Satélite ESRI World Imagery</option>
+                      <option value="dark">Modo Escuro (Alto Contraste)</option>
+                    </select>
+                  </div>
                 </div>
-                <button class="btn" id="btnMapResetBrazil">🌎 Ver Brasil Inteiro</button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="tag tag-ok" id="mapApiStatusBadge">API IBGE &amp; OSRM Ativas (Sem API Key)</span>
+                  <button class="btn" id="btnMapResetBrazil">🌎 Ver Brasil Inteiro</button>
+                </div>
               </div>
 
               <div class="od-map-layout">
