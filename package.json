@@ -8,7 +8,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000 --host",
     "start": "tsx src/server/nodeServer.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:data": "node scripts/validate-data.mjs",
+    "validate": "npm run typecheck && npm run validate:data && npm run build",
+    "flow:promote-main": "node scripts/promote-to-main.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.22",

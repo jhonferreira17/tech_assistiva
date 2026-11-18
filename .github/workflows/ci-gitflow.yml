@@ -1,0 +1,41 @@
+name: GitFlow Quality Gate (CI)
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  quality-gate:
+    name: TypeScript, Data Audit & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: 1. Checagem estrita de tipos TypeScript (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: 2. Auditoria de integridade da base de dados e 27 UFs
+        run: npm run validate:data
+
+      - name: 3. Build de produção Vite (Vercel Bundle)
+        run: npm run build
