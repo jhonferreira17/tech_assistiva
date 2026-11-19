@@ -145,47 +145,193 @@ function getRouteColor(distKm: number): string {
   return '#0284c7';
 }
 
-function getArrowMarkerId(distKm: number): string {
-  if (distKm >= 250) return 'od-arrow-rose';
-  if (distKm >= 100) return 'od-arrow-amber';
-  return 'od-arrow-blue';
+interface FlowArrowRoute {
+  pts: [number, number][];
+  color: string;
+  weight: number;
 }
 
-function ensureSvgArrowMarkers(svgRoot: SVGSVGElement | null): void {
-  if (!svgRoot) return;
-  let defs = svgRoot.querySelector('defs[data-od-arrows="true"]') as SVGDefsElement | null;
-  if (defs) return;
+/**
+ * Camada Canvas 2D de Setas em Movimento Contínuo ao longo das rotas Origem → Destino.
+ * Substitui os tracejados por uma fila de setas vetoriais caminhando na curvatura exata da rota.
+ */
+class AnimatedFlowArrowsLayer extends L.Layer {
+  private canvas: HTMLCanvasElement | null = null;
+  private routes: FlowArrowRoute[] = [];
+  private animId: number | null = null;
+  private startTime: number = 0;
 
-  const svgNS = 'http://www.w3.org/2000/svg';
-  defs = document.createElementNS(svgNS, 'defs');
-  defs.setAttribute('data-od-arrows', 'true');
+  constructor(routes: FlowArrowRoute[] = []) {
+    super();
+    this.routes = routes;
+  }
 
-  const specs = [
-    { id: 'od-arrow-blue', color: '#0284c7' },
-    { id: 'od-arrow-amber', color: '#d97706' },
-    { id: 'od-arrow-rose', color: '#e11d48' }
-  ];
+  public setRoutes(routes: FlowArrowRoute[]): void {
+    this.routes = routes;
+    if (this.routes.length > 0 && this.canvas && this.animId === null) {
+      this.startLoop();
+    } else if (this.routes.length === 0) {
+      this.stopLoop();
+      this.clearCanvas();
+    }
+  }
 
-  specs.forEach(({ id, color }) => {
-    const marker = document.createElementNS(svgNS, 'marker');
-    marker.setAttribute('id', id);
-    marker.setAttribute('viewBox', '0 0 10 10');
-    marker.setAttribute('refX', '9.5');
-    marker.setAttribute('refY', '5');
-    marker.setAttribute('markerWidth', '5');
-    marker.setAttribute('markerHeight', '5');
-    marker.setAttribute('orient', 'auto');
-    marker.setAttribute('markerUnits', 'strokeWidth');
+  public onAdd(map: L.Map): this {
+    this.canvas = L.DomUtil.create('canvas', 'leaflet-flow-arrows-layer') as HTMLCanvasElement;
+    this.canvas.style.position = 'absolute';
+    this.canvas.style.pointerEvents = 'none';
+    this.canvas.style.zIndex = '420';
 
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', 'M 0 1.2 L 10 5 L 0 8.8 L 2.4 5 Z');
-    path.setAttribute('fill', color);
+    const pane = map.getPane('overlayPane');
+    if (pane) pane.appendChild(this.canvas);
 
-    marker.appendChild(path);
-    defs!.appendChild(marker);
-  });
+    map.on('move zoom viewreset resize', this.syncCanvasSize, this);
+    this.syncCanvasSize();
+    if (this.routes.length > 0) {
+      this.startLoop();
+    }
+    return this;
+  }
 
-  svgRoot.insertBefore(defs, svgRoot.firstChild);
+  public onRemove(map: L.Map): this {
+    this.stopLoop();
+    map.off('move zoom viewreset resize', this.syncCanvasSize, this);
+    if (this.canvas && this.canvas.parentNode) {
+      this.canvas.parentNode.removeChild(this.canvas);
+    }
+    this.canvas = null;
+    return this;
+  }
+
+  private syncCanvasSize = (): void => {
+    if (!this.canvas || !this._map) return;
+    const size = this._map.getSize();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(this.canvas, topLeft);
+
+    const targetW = Math.max(1, Math.round(size.x * dpr));
+    const targetH = Math.max(1, Math.round(size.y * dpr));
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+      this.canvas.width = targetW;
+      this.canvas.height = targetH;
+      this.canvas.style.width = `${size.x}px`;
+      this.canvas.style.height = `${size.y}px`;
+    }
+  };
+
+  private clearCanvas(): void {
+    if (!this.canvas) return;
+    const ctx = this.canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  private stopLoop(): void {
+    if (this.animId !== null) {
+      cancelAnimationFrame(this.animId);
+      this.animId = null;
+    }
+  }
+
+  private startLoop(): void {
+    this.stopLoop();
+    this.startTime = performance.now();
+
+    const frame = (now: number): void => {
+      if (!this.canvas || !this._map || this.routes.length === 0) {
+        this.animId = null;
+        return;
+      }
+
+      const tabPanel = document.getElementById('tab-territorio');
+      const isVisible = !tabPanel || tabPanel.classList.contains('active');
+      if (isVisible) {
+        this.drawFrame((now - this.startTime) / 1000);
+      }
+      this.animId = requestAnimationFrame(frame);
+    };
+
+    this.animId = requestAnimationFrame(frame);
+  }
+
+  private drawFrame(elapsedSec: number): void {
+    if (!this.canvas || !this._map) return;
+    const size = this._map.getSize();
+    if (size.x <= 0 || size.y <= 0) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(this.canvas, topLeft);
+
+    const ctx = this.canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size.x, size.y);
+
+    for (let rIdx = 0; rIdx < this.routes.length; rIdx++) {
+      const route = this.routes[rIdx];
+      if (route.pts.length < 2) continue;
+
+      const screenPts: Array<{ x: number; y: number }> = [];
+      const cumLen: number[] = [0];
+      let totalLen = 0;
+
+      for (let i = 0; i < route.pts.length; i++) {
+        const p = this._map.latLngToContainerPoint(route.pts[i]);
+        screenPts.push({ x: p.x, y: p.y });
+        if (i > 0) {
+          const dx = p.x - screenPts[i - 1].x;
+          const dy = p.y - screenPts[i - 1].y;
+          totalLen += Math.hypot(dx, dy);
+          cumLen.push(totalLen);
+        }
+      }
+
+      if (totalLen < 12) continue;
+
+      const stepPx = Math.max(17, 15 + route.weight * 1.1);
+      const speedPx = 22;
+      const offsetPx = (elapsedSec * speedPx) % stepPx;
+      const arrowLen = Math.max(7.5, Math.min(11.5, 6.5 + route.weight * 0.9));
+      const arrowHalfW = arrowLen * 0.48;
+
+      let segIdx = 0;
+      for (let dist = offsetPx; dist < totalLen - 9; dist += stepPx) {
+        if (dist < 6) continue;
+        while (segIdx < cumLen.length - 2 && cumLen[segIdx + 1] < dist) {
+          segIdx++;
+        }
+
+        const segStart = cumLen[segIdx];
+        const segEnd = cumLen[segIdx + 1];
+        const segLen = Math.max(0.0001, segEnd - segStart);
+        const frac = (dist - segStart) / segLen;
+
+        const pA = screenPts[segIdx];
+        const pB = screenPts[segIdx + 1];
+        const x = pA.x + (pB.x - pA.x) * frac;
+        const y = pA.y + (pB.y - pA.y) * frac;
+        const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(arrowLen * 0.65, 0);
+        ctx.lineTo(-arrowLen * 0.45, -arrowHalfW);
+        ctx.lineTo(-arrowLen * 0.16, 0);
+        ctx.lineTo(-arrowLen * 0.45, arrowHalfW);
+        ctx.closePath();
+        ctx.fillStyle = route.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 0.85;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
 }
 
 interface HeatPoint {
@@ -313,6 +459,7 @@ export class MapaOrigemDestinoController {
   private statesLayer: L.GeoJSON | null = null;
   private ibgeMuniLayer: L.GeoJSON | null = null;
   private arcsLayer: L.LayerGroup = L.layerGroup();
+  private flowArrowsLayer: AnimatedFlowArrowsLayer = new AnimatedFlowArrowsLayer([]);
   private osrmRoadLayer: L.LayerGroup = L.layerGroup();
   private markersLayer: L.LayerGroup = L.layerGroup();
   private heatmapLayer: SimpleCanvasHeatmapLayer = new SimpleCanvasHeatmapLayer([]);
@@ -345,6 +492,7 @@ export class MapaOrigemDestinoController {
     this.setBaseTileLayer('osm');
     this.renderBrazilStatesGeoJSON();
     this.arcsLayer.addTo(this.map);
+    this.flowArrowsLayer.addTo(this.map);
     this.osrmRoadLayer.addTo(this.map);
     this.markersLayer.addTo(this.map);
 
@@ -733,6 +881,7 @@ export class MapaOrigemDestinoController {
     }, 1);
 
     const drawRoutes = this.displayMode === 'routes' || this.displayMode === 'both';
+    const animatedFlowRoutes: FlowArrowRoute[] = [];
 
     routes.forEach(r => {
       const vol = this.currentMod === 'ALL' ? r.prod + r.proc : r.mods[this.currentMod] || 0;
@@ -757,17 +906,14 @@ export class MapaOrigemDestinoController {
 
       if (!drawRoutes) return;
 
-      // Encurta levemente a ponta final para a seta encostar na borda do polo sem ficar encoberta
-      const fullCurve = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d, 26);
-      const latlngs = fullCurve.slice(0, fullCurve.length - 1);
-      const weight = Math.max(1.8, Math.min(6.0, 1.8 + (vol / maxVol) * 4.2));
+      const latlngs = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d, 26);
+      const weight = Math.max(1.8, Math.min(5.5, 1.8 + (vol / maxVol) * 3.7));
       const color = getRouteColor(r.dist_km);
-      const markerId = getArrowMarkerId(r.dist_km);
 
       const polyline = L.polyline(latlngs, {
         color,
-        weight,
-        opacity: 0.82,
+        weight: Math.max(1.5, weight * 0.65),
+        opacity: 0.28,
         className: 'od-flow-arc'
       });
 
@@ -779,21 +925,18 @@ export class MapaOrigemDestinoController {
         { sticky: true }
       );
 
-      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 1.8, opacity: 1.0 }));
-      polyline.on('mouseout', () => polyline.setStyle({ weight, opacity: 0.82 }));
+      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 1.5, opacity: 0.85 }));
+      polyline.on('mouseout', () => polyline.setStyle({ weight: Math.max(1.5, weight * 0.65), opacity: 0.28 }));
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
         void this.renderRouteDetailCardWithOSRM(r);
       });
 
       this.arcsLayer.addLayer(polyline);
-
-      const pathEl = (polyline as unknown as { _path?: SVGPathElement })._path;
-      if (pathEl) {
-        ensureSvgArrowMarkers(pathEl.ownerSVGElement);
-        pathEl.setAttribute('marker-end', `url(#${markerId})`);
-      }
+      animatedFlowRoutes.push({ pts: latlngs, color, weight });
     });
+
+    this.flowArrowsLayer.setRoutes(drawRoutes ? animatedFlowRoutes : []);
 
     if (drawRoutes) {
       activeOrigins.forEach(orig => {
