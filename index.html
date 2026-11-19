@@ -114,11 +114,17 @@
               <option value="ALL">Todos os Estados (27 UFs)</option>
             </select>
           </div>
-          <div class="filter-item">
+          <div class="filter-item muni-combo-wrap" id="muniComboWrap">
             <label for="filterMunicipio">Município</label>
-            <input type="search" id="filterMunicipio" list="municipiosDatalist" class="filter-input"
-              placeholder="Buscar município (5.570)..." autocomplete="off" spellcheck="false" style="min-width:220px;" />
-            <datalist id="municipiosDatalist"></datalist>
+            <div class="muni-input-box">
+              <input type="text" id="filterMunicipio" class="filter-input muni-combo-input"
+                placeholder="Buscar município (5.570)..." autocomplete="off" spellcheck="false" />
+              <button type="button" id="btnClearMuniInput" class="muni-clear-btn" title="Limpar município"
+                aria-label="Limpar município">✕</button>
+              <button type="button" id="btnToggleMuniList" class="muni-toggle-btn" title="Abrir lista de municípios"
+                aria-label="Abrir lista de municípios">▾</button>
+            </div>
+            <div id="muniDropdownList" class="muni-dropdown" role="listbox"></div>
           </div>
           <div class="filter-item">
             <label for="filterModalidade">Linha de Cuidado</label>
