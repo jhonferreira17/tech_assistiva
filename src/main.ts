@@ -69,8 +69,23 @@ function cloneChartConfig(val: any): any {
 }
 
 function isCanvasVisible(el: HTMLCanvasElement): boolean {
-  const rect = el.getBoundingClientRect();
-  return el.offsetParent !== null && rect.width > 0 && rect.height > 0;
+  const parent = el.parentElement;
+  if (!parent) return false;
+  const rect = parent.getBoundingClientRect();
+  return parent.offsetParent !== null && rect.width > 0 && rect.height > 0;
+}
+
+function mountChartClean(canvas: HTMLCanvasElement, id: string, cfg: any): void {
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  canvas.removeAttribute('style');
+  canvas.removeAttribute('width');
+  canvas.removeAttribute('height');
+  charts[id] = new Chart(canvas, cloneChartConfig(cfg));
 }
 
 function mountVisibleChartsIn(container: HTMLElement | null): void {
@@ -80,12 +95,7 @@ function mountVisibleChartsIn(container: HTMLElement | null): void {
     const id = canvas.id;
     const cfg = pendingChartConfigs[id];
     if (!cfg || !isCanvasVisible(canvas)) return;
-
-    if (charts[id]) {
-      charts[id].destroy();
-      delete charts[id];
-    }
-    charts[id] = new Chart(canvas, cloneChartConfig(cfg));
+    mountChartClean(canvas, id, cfg);
   });
 }
 
@@ -954,13 +964,12 @@ function renderCharts(forceStatic = false): void {
 
   function createOrUpdateChart(id: string, config: any): void {
     pendingChartConfigs[id] = config;
-    if (charts[id]) {
-      charts[id].destroy();
-      delete charts[id];
-    }
     const ctx = getEl<HTMLCanvasElement>(id);
     if (ctx && isCanvasVisible(ctx)) {
-      charts[id] = new Chart(ctx, cloneChartConfig(config));
+      mountChartClean(ctx, id, config);
+    } else if (charts[id]) {
+      charts[id].destroy();
+      delete charts[id];
     }
   }
 
