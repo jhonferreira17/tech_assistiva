@@ -55,6 +55,7 @@ const state: FiltroGlobalState = {
   municipioNome: '',
   modalidades: [],
   equipChartGroup: 'categoria',
+  equipChartMetric: 'equipamentos',
   sigtapSearch: '',
   sigtapTipo: 'ALL',
   poloMunSearch: '',
@@ -1318,85 +1319,352 @@ function renderCharts(forceStatic = false): void {
     }
   });
 
-  // 2B. Novo Gráfico Dedicado: Equipamentos Entregues (Produtos Físicos)
+  // 2B. Gráfico Dedicado: Produtos, Atos Clínicos, Valor Total, Taxa Prod, Taxa Atos, RI e Produtos + Valor Total
   const prodOnlyCubo = filteredCubo.filter(r => r.tipo_registro === 'Produto');
+  const procOnlyCubo = filteredCubo.filter(r => r.tipo_registro === 'Procedimento');
   const totalEquipFiltrado = prodOnlyCubo.reduce((acc, r) => acc + r.qtd_aprovada, 0);
+  const totalProcFiltrado = procOnlyCubo.reduce((acc, r) => acc + r.qtd_aprovada, 0);
+  const totalOrcFiltrado = filteredCubo.reduce((acc, r) => acc + r.val_aprovado, 0);
+  const riGlobalFiltrado = totalEquipFiltrado > 0 ? totalProcFiltrado / totalEquipFiltrado : 0;
+
+  // Denominador populacional PcD (Censo IBGE 2022) conforme filtro territorial ativo
+  const ufTrienioRows = DB.resumo_uf.filter(r => r.ano === 'Triênio');
+  const pcdDenomGlobal = ufTrienioRows
+    .filter(
+      r =>
+        (state.macro === 'ALL' || r.macrorregiao === state.macro) &&
+        (state.uf === 'ALL' || r.uf === state.uf)
+    )
+    .reduce((acc, r) => acc + Number(r.pop_pcd_censo2022 || 0), 0);
+
+  const modValTotal: Record<string, number> = {};
+  modOrder.forEach(m => {
+    modValTotal[m] = 0;
+  });
+  filteredCubo.forEach(r => {
+    modValTotal[r.modalidade] = (modValTotal[r.modalidade] || 0) + r.val_aprovado;
+  });
+
+  const modClearCategoryNames: Record<ModalidadeISO9999, string> = {
+    TA04: 'Audição (Aparelhos Auditivos / FM)',
+    TA01: 'Locomoção (Cadeiras / Andadores)',
+    TA05: 'Visão e Baixa Visão (Óculos / Próteses)',
+    TA02: 'Órteses Ortopédicas',
+    TA10: 'Adequação Postural',
+    TA03: 'Próteses de Membros',
+    TA06: 'Reabilitação Vocal'
+  };
+
+  const equipTitleEl = getEl('equipChartTitle');
   const equipSubEl = getEl('equipChartSubtitle');
+  const thEquipGroupEl = getEl('thEquipGroupLabel');
 
-  let equipLabels: string[] = [];
-  let equipValues: number[] = [];
-  let equipValsBRL: number[] = [];
-  let equipColors: string[] = [];
-  let equipKeys: string[] = [];
+  interface EquipGroupStat {
+    key: string;
+    label: string;
+    qtd: number;
+    proc: number;
+    val: number;
+    taxaProd: number;
+    taxaAtos: number;
+    ri: number;
+    color: string;
+  }
 
+  let statsList: EquipGroupStat[] = [];
   if (state.equipChartGroup === 'ano') {
+    if (thEquipGroupEl) thEquipGroupEl.textContent = 'Ano de Competência';
     const anosList = ['2022', '2023', '2024'];
-    equipLabels = anosList.map(a => `Ano ${a}`);
-    equipKeys = anosList;
-    equipValues = anosList.map(a =>
-      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0)
-    );
-    equipValsBRL = anosList.map(a =>
-      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.val_aprovado, 0)
-    );
-    equipColors = ['#0284c7', '#0d9488', '#059669'];
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por ano • Clique em uma barra para filtrar o ano`;
-    }
+    statsList = anosList.map((a, idx) => {
+      const qtd = prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const proc = procOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const val = filteredCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.val_aprovado, 0);
+      return {
+        key: a,
+        label: `Ano ${a}`,
+        qtd,
+        proc,
+        val,
+        taxaProd: pcdDenomGlobal > 0 ? (qtd * 1000) / pcdDenomGlobal : 0,
+        taxaAtos: pcdDenomGlobal > 0 ? (proc * 1000) / pcdDenomGlobal : 0,
+        ri: qtd > 0 ? proc / qtd : 0,
+        color: ['#0284c7', '#0d9488', '#059669'][idx]
+      };
+    });
   } else if (state.equipChartGroup === 'regiao') {
+    if (thEquipGroupEl) thEquipGroupEl.textContent = 'Região do Brasil';
     const macroList: MacrorregiaoBrasil[] = ['Sudeste', 'Nordeste', 'Sul', 'Centro-Oeste', 'Norte'];
-    const macroStats = macroList
-      .map((mc, i) => ({
+    statsList = macroList.map((mc, idx) => {
+      const qtd = prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const proc = procOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const val = filteredCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.val_aprovado, 0);
+      const pcdMacro = ufTrienioRows
+        .filter(r => r.macrorregiao === mc)
+        .reduce((acc, r) => acc + Number(r.pop_pcd_censo2022 || 0), 0);
+      return {
         key: mc,
         label: mc,
-        qtd: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0),
-        val: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.val_aprovado, 0),
-        color: ['#0284c7', '#d97706', '#059669', '#4f46e5', '#e11d48'][i]
-      }))
-      .sort((a, b) => b.qtd - a.qtd);
-    equipLabels = macroStats.map(s => s.label);
-    equipKeys = macroStats.map(s => s.key);
-    equipValues = macroStats.map(s => s.qtd);
-    equipValsBRL = macroStats.map(s => s.val);
-    equipColors = macroStats.map(s => s.color);
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por região • Clique em uma barra para filtrar a região`;
-    }
+        qtd,
+        proc,
+        val,
+        taxaProd: pcdMacro > 0 ? (qtd * 1000) / pcdMacro : 0,
+        taxaAtos: pcdMacro > 0 ? (proc * 1000) / pcdMacro : 0,
+        ri: qtd > 0 ? proc / qtd : 0,
+        color: ['#0284c7', '#d97706', '#059669', '#4f46e5', '#e11d48'][idx]
+      };
+    });
   } else {
-    const catStats = activeModOrder
-      .map(m => ({
+    if (thEquipGroupEl) thEquipGroupEl.textContent = 'Categoria de Equipamento';
+    statsList = activeModOrder.map(m => {
+      const qtd = modProd[m] || 0;
+      const proc = modProc[m] || 0;
+      const val = modValTotal[m] || 0;
+      return {
         key: m,
-        label: modLabels[m],
-        qtd: modProd[m] || 0,
-        val: modVal[m] || 0,
+        label: modClearCategoryNames[m],
+        qtd,
+        proc,
+        val,
+        taxaProd: pcdDenomGlobal > 0 ? (qtd * 1000) / pcdDenomGlobal : 0,
+        taxaAtos: pcdDenomGlobal > 0 ? (proc * 1000) / pcdDenomGlobal : 0,
+        ri: qtd > 0 ? proc / qtd : 0,
         color: modColors[m]
-      }))
-      .sort((a, b) => b.qtd - a.qtd);
-    equipLabels = catStats.map(s => s.label);
-    equipKeys = catStats.map(s => s.key);
-    equipValues = catStats.map(s => s.qtd);
-    equipValsBRL = catStats.map(s => s.val);
-    equipColors = catStats.map(s => s.color);
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos (${activeModOrder.length} categoria${activeModOrder.length > 1 ? 's' : ''}) • Clique em uma barra para alternar`;
+      };
+    });
+  }
+
+  // Ordena pelo indicador ativo (exceto por Ano, que mantém ordem cronológica)
+  if (state.equipChartGroup !== 'ano') {
+    statsList.sort((a, b) => {
+      if (state.equipChartMetric === 'atos') return b.proc - a.proc;
+      if (state.equipChartMetric === 'orcamento') return b.val - a.val;
+      if (state.equipChartMetric === 'taxa_prod') return b.taxaProd - a.taxaProd;
+      if (state.equipChartMetric === 'taxa_atos') return b.taxaAtos - a.taxaAtos;
+      if (state.equipChartMetric === 'ri') return b.ri - a.ri;
+      return b.qtd - a.qtd;
+    });
+  }
+
+  const equipLabels = statsList.map(s => s.label);
+  const equipKeys = statsList.map(s => s.key);
+  const equipValues = statsList.map(s => s.qtd);
+  const equipProcVals = statsList.map(s => s.proc);
+  const equipValsBRL = statsList.map(s => s.val);
+  const equipTaxaProdVals = statsList.map(s => Number(s.taxaProd.toFixed(2)));
+  const equipTaxaAtosVals = statsList.map(s => Number(s.taxaAtos.toFixed(2)));
+  const equipRiVals = statsList.map(s => Number(s.ri.toFixed(4)));
+  const equipColors = statsList.map(s => s.color);
+
+  const metricMode = state.equipChartMetric;
+  const isVerticalEquip = state.equipChartGroup === 'ano';
+
+  if (equipTitleEl) {
+    if (metricMode === 'atos') equipTitleEl.textContent = 'Atos Clínicos de Adaptação por Categoria';
+    else if (metricMode === 'orcamento') equipTitleEl.textContent = 'Valor Total Aprovado (R$)';
+    else if (metricMode === 'ambos') equipTitleEl.textContent = 'Produtos (un.) vs. Valor Total Aprovado (R$)';
+    else if (metricMode === 'taxa_prod') equipTitleEl.textContent = 'Taxa de Produtos por 1.000 PcD (Censo 2022)';
+    else if (metricMode === 'taxa_atos') equipTitleEl.textContent = 'Taxa de Atos Clínicos por 1.000 PcD (Censo 2022)';
+    else if (metricMode === 'ri') equipTitleEl.textContent = 'Razão de Integralidade (RI — Índice de Acompanhamento)';
+    else equipTitleEl.textContent = 'Equipamentos Entregues por Categoria — Produtos (un.)';
+  }
+
+  const activeCatsTag =
+    state.modalidades.length === 0
+      ? 'Todas as 7 categorias'
+      : state.modalidades.map(m => MOD_SHORT_NAMES[m]).join(', ');
+
+  if (equipSubEl) {
+    const scopeStr =
+      state.equipChartGroup === 'ano'
+        ? `por ano • Categorias: ${activeCatsTag}`
+        : state.equipChartGroup === 'regiao'
+        ? `por região • Categorias: ${activeCatsTag}`
+        : `por categoria de equipamento (${activeModOrder.length})`;
+
+    if (metricMode === 'atos') {
+      equipSubEl.textContent = `Total: ${fmtInt.format(totalProcFiltrado)} atos clínicos (${scopeStr})`;
+    } else if (metricMode === 'orcamento') {
+      equipSubEl.textContent = `Valor total aprovado: ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr})`;
+    } else if (metricMode === 'ambos') {
+      equipSubEl.textContent = `${fmtInt.format(totalEquipFiltrado)} produtos e ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr})`;
+    } else if (metricMode === 'taxa_prod') {
+      const txGlobal = pcdDenomGlobal > 0 ? (totalEquipFiltrado * 1000) / pcdDenomGlobal : 0;
+      equipSubEl.textContent = `Taxa média no recorte: ${fmtDec2.format(txGlobal)} produtos / 1.000 PcD (${scopeStr})`;
+    } else if (metricMode === 'taxa_atos') {
+      const txAtosGlobal = pcdDenomGlobal > 0 ? (totalProcFiltrado * 1000) / pcdDenomGlobal : 0;
+      equipSubEl.textContent = `Taxa média no recorte: ${fmtDec2.format(txAtosGlobal)} atos clínicos / 1.000 PcD (${scopeStr})`;
+    } else if (metricMode === 'ri') {
+      equipSubEl.textContent = `Razão de Integralidade média: ${fmtDec4.format(riGlobalFiltrado)} (${scopeStr})`;
+    } else {
+      equipSubEl.textContent = `Total: ${fmtInt.format(totalEquipFiltrado)} produtos físicos (${scopeStr}) • Clique em uma barra para filtrar`;
     }
   }
+
+  const equipDatasets: any[] =
+    metricMode === 'ambos'
+      ? [
+          {
+            label: 'Produtos (un.)',
+            data: equipValues,
+            backgroundColor: '#0284c7',
+            borderRadius: 4,
+            ...(isVerticalEquip ? { yAxisID: 'y' } : { xAxisID: 'x' })
+          },
+          {
+            label: 'Valor Total (R$)',
+            data: equipValsBRL,
+            backgroundColor: '#059669',
+            borderRadius: 4,
+            ...(isVerticalEquip ? { yAxisID: 'y1' } : { xAxisID: 'x1' })
+          }
+        ]
+      : metricMode === 'atos'
+      ? [
+          {
+            label: 'Atos Clínicos',
+            data: equipProcVals,
+            backgroundColor: '#0d9488',
+            borderRadius: 5
+          }
+        ]
+      : metricMode === 'orcamento'
+      ? [
+          {
+            label: 'Valor Total (R$)',
+            data: equipValsBRL,
+            backgroundColor: '#059669',
+            borderRadius: 5
+          }
+        ]
+      : metricMode === 'taxa_prod'
+      ? [
+          {
+            label: 'Taxa Prod (/ 1.000 PcD)',
+            data: equipTaxaProdVals,
+            backgroundColor: '#0284c7',
+            borderRadius: 5
+          }
+        ]
+      : metricMode === 'taxa_atos'
+      ? [
+          {
+            label: 'Taxa Atos (/ 1.000 PcD)',
+            data: equipTaxaAtosVals,
+            backgroundColor: '#4f46e5',
+            borderRadius: 5
+          }
+        ]
+      : metricMode === 'ri'
+      ? [
+          {
+            label: 'Razão de Integralidade (RI)',
+            data: equipRiVals,
+            backgroundColor: '#d97706',
+            borderRadius: 5
+          }
+        ]
+      : [
+          {
+            label: 'Produtos (un.)',
+            data: equipValues,
+            backgroundColor: equipColors,
+            borderRadius: 5
+          }
+        ];
+
+  const equipScales: any =
+    metricMode === 'ambos'
+      ? isVerticalEquip
+        ? {
+            x: {
+              type: 'category',
+              grid: { display: false },
+              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+            },
+            y: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: gridColor },
+              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
+              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Valor Total (R$)', font: { size: 11 } },
+              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
+            }
+          }
+        : {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              grid: { color: gridColor },
+              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
+              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
+            },
+            x1: {
+              type: 'linear',
+              position: 'top',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Valor Total (R$)', font: { size: 11 } },
+              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
+            },
+            y: {
+              type: 'category',
+              grid: { display: false },
+              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+            }
+          }
+      : isVerticalEquip
+      ? {
+          x: {
+            type: 'category',
+            grid: { display: false },
+            ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+          },
+          y: {
+            type: 'linear',
+            grid: { color: gridColor },
+            ticks: {
+              callback: (v: any) =>
+                metricMode === 'orcamento'
+                  ? formatCompactBRL(Number(v))
+                  : metricMode === 'ri'
+                  ? fmtDec2.format(Number(v))
+                  : fmtInt.format(Number(v))
+            }
+          }
+        }
+      : {
+          x: {
+            type: 'linear',
+            grid: { color: gridColor },
+            ticks: {
+              callback: (v: any) =>
+                metricMode === 'orcamento'
+                  ? formatCompactBRL(Number(v))
+                  : metricMode === 'ri'
+                  ? fmtDec2.format(Number(v))
+                  : fmtInt.format(Number(v))
+            }
+          },
+          y: {
+            type: 'category',
+            grid: { display: false },
+            ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+          }
+        };
 
   createOrUpdateChart('chartEquipamentosEntregues', {
     type: 'bar',
     data: {
       labels: equipLabels,
-      datasets: [
-        {
-          label: 'Equipamentos Entregues',
-          data: equipValues,
-          backgroundColor: equipColors,
-          borderRadius: 5
-        }
-      ]
+      datasets: equipDatasets
     },
     options: {
-      indexAxis: state.equipChartGroup === 'ano' ? 'x' : 'y',
+      indexAxis: isVerticalEquip ? 'x' : 'y',
       responsive: true,
       maintainAspectRatio: false,
       onHover: pointerHover,
@@ -1429,66 +1697,121 @@ function renderCharts(forceStatic = false): void {
         scheduleRefreshAll();
       },
       layout: {
-        padding:
-          state.equipChartGroup === 'ano'
-            ? { top: 26, right: 12 }
-            : { top: 6, right: 145 }
+        padding: isVerticalEquip
+          ? { top: 26, right: 12 }
+          : { top: 6, right: metricMode === 'ri' || metricMode === 'taxa_prod' || metricMode === 'taxa_atos' ? 115 : 160 }
       },
       plugins: {
-        legend: { display: false },
+        legend: { display: metricMode === 'ambos' },
         tooltip: {
           callbacks: {
             label: (ctx: any) => {
               const i = ctx.dataIndex;
               const qtd = equipValues[i] || 0;
-              const pct = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
+              const proc = equipProcVals[i] || 0;
+              const pctQtd = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
+              const pctProc = totalProcFiltrado > 0 ? (proc * 100) / totalProcFiltrado : 0;
               const brl = equipValsBRL[i] || 0;
+              const pctBrl = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
+              const txP = equipTaxaProdVals[i] || 0;
+              const txA = equipTaxaAtosVals[i] || 0;
+              const ri = equipRiVals[i] || 0;
+
+              if (metricMode === 'ambos') {
+                if (ctx.datasetIndex === 0) {
+                  return ` Produtos (un.): ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`;
+                }
+                return ` Valor Total: ${fmtBRL.format(brl)} (${fmtDec1.format(pctBrl)}%)`;
+              }
               return [
-                ` Equipamentos: ${fmtInt.format(qtd)} (${fmtDec1.format(pct)}%)`,
-                ` Investimento: ${formatCompactBRL(brl)}`
+                ` Produtos (un.): ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`,
+                ` Atos Clínicos: ${fmtInt.format(proc)} (${fmtDec1.format(pctProc)}%)`,
+                ` Valor Total: ${fmtBRL.format(brl)} (${fmtDec1.format(pctBrl)}%)`,
+                ` Taxa Prod: ${fmtDec2.format(txP)} | Taxa Atos: ${fmtDec2.format(txA)} / 1k PcD`,
+                ` RI: ${fmtDec4.format(ri)}`
               ];
             }
           }
         }
       },
-      scales: {
-        x: { grid: { color: state.equipChartGroup === 'ano' ? 'transparent' : gridColor } },
-        y: { grid: { color: state.equipChartGroup === 'ano' ? gridColor : 'transparent' } }
-      }
+      scales: equipScales
     },
     plugins: [
       {
         id: 'equipAbsPctLabels',
         afterDatasetsDraw(chart: any) {
           const { ctx } = chart;
-          const meta = chart.getDatasetMeta(0);
-          if (!meta || !meta.data) return;
           const isVertical = chart.options.indexAxis === 'x';
 
           ctx.save();
-          ctx.font = "600 11.5px 'Inter', sans-serif";
+          ctx.font = metricMode === 'ambos' ? "600 10.5px 'Inter', sans-serif" : "600 11.5px 'Inter', sans-serif";
           ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
 
-          meta.data.forEach((bar: any, idx: number) => {
-            const val = equipValues[idx] || 0;
-            const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
-            const labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+          chart.data.datasets.forEach((_ds: any, dsIdx: number) => {
+            const meta = chart.getDatasetMeta(dsIdx);
+            if (!meta || meta.hidden || !meta.data) return;
 
-            if (isVertical) {
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'bottom';
-              ctx.fillText(labelText, bar.x, bar.y - 6);
-            } else {
-              ctx.textAlign = 'left';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(labelText, bar.x + 8, bar.y);
-            }
+            meta.data.forEach((bar: any, idx: number) => {
+              let labelText = '';
+              if (metricMode === 'ri') {
+                labelText = fmtDec4.format(equipRiVals[idx] || 0);
+              } else if (metricMode === 'taxa_prod') {
+                labelText = `${fmtDec2.format(equipTaxaProdVals[idx] || 0)} / 1k PcD`;
+              } else if (metricMode === 'taxa_atos') {
+                labelText = `${fmtDec2.format(equipTaxaAtosVals[idx] || 0)} / 1k PcD`;
+              } else if (metricMode === 'atos') {
+                const pVal = equipProcVals[idx] || 0;
+                const pct = totalProcFiltrado > 0 ? (pVal * 100) / totalProcFiltrado : 0;
+                labelText = `${fmtInt.format(pVal)} (${fmtDec1.format(pct)}%)`;
+              } else if (metricMode === 'orcamento' || (metricMode === 'ambos' && dsIdx === 1)) {
+                const brl = equipValsBRL[idx] || 0;
+                const pct = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
+                labelText = `${formatCompactBRL(brl)} (${fmtDec1.format(pct)}%)`;
+              } else {
+                const val = equipValues[idx] || 0;
+                const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
+                labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+              }
+
+              if (isVertical) {
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(labelText, bar.x, bar.y - 5);
+              } else {
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labelText, bar.x + 8, bar.y);
+              }
+            });
           });
           ctx.restore();
         }
       }
     ]
   });
+
+  // Tabela-resumo completa com todos os 6 indicadores (Produtos, Atos Clínicos, Valor Total, Taxa Prod, Taxa Atos, RI)
+  const tbEquipResumo = document.querySelector('#tableEquipResumo tbody');
+  if (tbEquipResumo) {
+    tbEquipResumo.innerHTML = statsList
+      .map(
+        s => `
+        <tr>
+          <td>
+            <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${s.color};margin-right:7px;"></span>
+            <strong>${s.label}</strong>
+          </td>
+          <td class="num-col"><strong>${fmtInt.format(s.qtd)}</strong></td>
+          <td class="num-col">${fmtInt.format(s.proc)}</td>
+          <td class="num-col"><strong>${fmtBRL.format(s.val)}</strong></td>
+          <td class="num-col">${fmtDec2.format(s.taxaProd)}</td>
+          <td class="num-col">${fmtDec2.format(s.taxaAtos)}</td>
+          <td class="num-col"><span class="tag ${s.ri >= 0.1524 ? 'tag-ok' : s.ri < 0.05 ? 'tag-crit' : 'tag-zero'}">${fmtDec4.format(s.ri)}</span></td>
+        </tr>
+      `
+      )
+      .join('');
+  }
 
   createOrUpdateChart('chartModalidadesCap1', {
     type: 'bar',
@@ -2417,6 +2740,11 @@ function bindEvents(): void {
       syncModMultiUI();
       refreshAll();
     });
+  });
+
+  getEl<HTMLSelectElement>('selectEquipChartMetric')?.addEventListener('change', e => {
+    state.equipChartMetric = (e.target as HTMLSelectElement).value as FiltroGlobalState['equipChartMetric'];
+    renderCharts();
   });
 
   getEl<HTMLSelectElement>('selectEquipChartGroup')?.addEventListener('change', e => {
