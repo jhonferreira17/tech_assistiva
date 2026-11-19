@@ -648,6 +648,75 @@ body {
   text-align: center;
 }
 
+/* Multi-select Checkbox Dropdown (Linha de Cuidado) */
+.mod-multi-wrap {
+  position: relative;
+}
+
+.mod-multi-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 220px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mod-multi-caret {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.mod-multi-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 310px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  z-index: 1250;
+  padding: 6px;
+}
+
+.mod-multi-dropdown.open {
+  display: block;
+}
+
+.mod-check-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mod-check-item:hover {
+  background: var(--bg-hover);
+}
+
+.mod-check-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mod-check-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 4px 6px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;

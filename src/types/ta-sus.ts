@@ -518,7 +518,8 @@ export interface FiltroGlobalState {
   uf: 'ALL' | string;
   municipioCod: string;
   municipioNome: string;
-  modalidade: 'ALL' | ModalidadeISO9999;
+  modalidades: ModalidadeISO9999[];
+  equipChartGroup: 'categoria' | 'ano' | 'regiao';
   sigtapSearch: string;
   sigtapTipo: 'ALL' | 'Produto' | 'Procedimento' | 'ZERO';
   poloMunSearch: string;
