@@ -1428,6 +1428,12 @@ function renderCharts(forceStatic = false): void {
         }
         scheduleRefreshAll();
       },
+      layout: {
+        padding:
+          state.equipChartGroup === 'ano'
+            ? { top: 26, right: 12 }
+            : { top: 6, right: 145 }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -1449,7 +1455,39 @@ function renderCharts(forceStatic = false): void {
         x: { grid: { color: state.equipChartGroup === 'ano' ? 'transparent' : gridColor } },
         y: { grid: { color: state.equipChartGroup === 'ano' ? gridColor : 'transparent' } }
       }
-    }
+    },
+    plugins: [
+      {
+        id: 'equipAbsPctLabels',
+        afterDatasetsDraw(chart: any) {
+          const { ctx } = chart;
+          const meta = chart.getDatasetMeta(0);
+          if (!meta || !meta.data) return;
+          const isVertical = chart.options.indexAxis === 'x';
+
+          ctx.save();
+          ctx.font = "600 11.5px 'Inter', sans-serif";
+          ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
+
+          meta.data.forEach((bar: any, idx: number) => {
+            const val = equipValues[idx] || 0;
+            const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
+            const labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+
+            if (isVertical) {
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(labelText, bar.x, bar.y - 6);
+            } else {
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(labelText, bar.x + 8, bar.y);
+            }
+          });
+          ctx.restore();
+        }
+      }
+    ]
   });
 
   createOrUpdateChart('chartModalidadesCap1', {
