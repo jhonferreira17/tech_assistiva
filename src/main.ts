@@ -53,7 +53,7 @@ const state: FiltroGlobalState = {
 const charts: Record<string, Chart> = {};
 const pendingChartConfigs: Record<string, any> = {};
 const municipioLookupByLabel = new Map<string, { cod: string; nome: string; uf: string }>();
-let lastDatalistUf: string | null = null;
+let lastDatalistKey: string | null = null;
 let staticTablesRendered = false;
 let staticChartsRendered = false;
 let sigtapExcluidosRendered = false;
@@ -118,8 +118,16 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: number): T
 
 const odMapController = new MapaOrigemDestinoController((selectedUf: string) => {
   state.uf = selectedUf;
-  const selUF = getEl<HTMLSelectElement>('filterUF');
-  if (selUF) selUF.value = state.uf;
+  if (selectedUf !== 'ALL') {
+    const ufRow = DB.resumo_uf.find(r => r.uf === selectedUf);
+    if (ufRow) {
+      state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
+      const selMacro = getEl<HTMLSelectElement>('filterMacro');
+      if (selMacro) selMacro.value = state.macro;
+    }
+  }
+  populateUfSelector();
+  populateMunicipioDatalist();
   refreshAll();
 });
 
@@ -127,32 +135,70 @@ function getEl<T extends HTMLElement = HTMLElement>(id: string): T | null {
   return document.getElementById(id) as T | null;
 }
 
-function initSelectors(): void {
+function getUfsForMacro(macro: 'ALL' | MacrorregiaoBrasil): Array<{ uf: string; nome: string; macro: string }> {
+  const seen = new Map<string, { uf: string; nome: string; macro: string }>();
+  DB.resumo_uf.forEach(r => {
+    if (!seen.has(r.uf)) {
+      seen.set(r.uf, { uf: r.uf, nome: r.uf_nome, macro: r.macrorregiao });
+    }
+  });
+  return Array.from(seen.values())
+    .filter(item => macro === 'ALL' || item.macro === macro)
+    .sort((a, b) => a.uf.localeCompare(b.uf));
+}
+
+function populateUfSelector(): void {
   const selUF = getEl<HTMLSelectElement>('filterUF');
   if (!selUF) return;
 
-  const ufs = Array.from(new Set(DB.resumo_uf.map(r => r.uf))).sort();
-  ufs.forEach(uf => {
-    const row = DB.resumo_uf.find(r => r.uf === uf);
+  const ufsList = getUfsForMacro(state.macro);
+  const validUfSet = new Set(ufsList.map(x => x.uf));
+
+  if (state.uf !== 'ALL' && !validUfSet.has(state.uf)) {
+    state.uf = 'ALL';
+  }
+
+  selUF.innerHTML = '';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = 'ALL';
+  defaultOpt.textContent =
+    state.macro === 'ALL'
+      ? `Todos os Estados (${ufsList.length} UFs)`
+      : `Todos — ${state.macro} (${ufsList.length} UFs)`;
+  selUF.appendChild(defaultOpt);
+
+  ufsList.forEach(item => {
     const opt = document.createElement('option');
-    opt.value = uf;
-    opt.textContent = `${uf} — ${row ? row.uf_nome : uf}`;
+    opt.value = item.uf;
+    opt.textContent = `${item.uf} — ${item.nome}`;
     selUF.appendChild(opt);
   });
 
+  selUF.value = state.uf;
+}
+
+function initSelectors(): void {
+  populateUfSelector();
   populateMunicipioDatalist();
 }
 
 function populateMunicipioDatalist(): void {
   const datalist = getEl<HTMLDataListElement>('municipiosDatalist');
+  const inputMun = getEl<HTMLInputElement>('filterMunicipio');
   const munDict = window.MAPA_OD_SUS?.municipios_ibge;
   if (!datalist || !munDict) return;
-  if (lastDatalistUf === state.uf) return;
-  lastDatalistUf = state.uf;
+
+  const filterKey = `${state.macro}|${state.uf}`;
+  if (lastDatalistKey === filterKey) return;
+  lastDatalistKey = filterKey;
+
+  const allowedUfs = new Set(
+    state.uf !== 'ALL' ? [state.uf] : getUfsForMacro(state.macro).map(x => x.uf)
+  );
 
   municipioLookupByLabel.clear();
   const entries = Object.entries(munDict)
-    .filter(([, meta]) => state.uf === 'ALL' || meta[1] === state.uf)
+    .filter(([, meta]) => allowedUfs.has(meta[1]))
     .sort((a, b) => a[1][0].localeCompare(b[1][0], 'pt-BR'));
 
   const frag = document.createDocumentFragment();
@@ -170,6 +216,16 @@ function populateMunicipioDatalist(): void {
 
   datalist.innerHTML = '';
   datalist.appendChild(frag);
+
+  if (inputMun) {
+    if (state.uf !== 'ALL') {
+      inputMun.placeholder = `Município em ${state.uf} (${fmtInt.format(entries.length)})...`;
+    } else if (state.macro !== 'ALL') {
+      inputMun.placeholder = `Município — ${state.macro} (${fmtInt.format(entries.length)})...`;
+    } else {
+      inputMun.placeholder = `Buscar município (${fmtInt.format(entries.length)})...`;
+    }
+  }
 }
 
 function renderMunicipioSummaryBar(): void {
@@ -1792,15 +1848,37 @@ function bindEvents(): void {
       const ufRow = DB.resumo_uf.find(r => r.uf === state.uf);
       if (ufRow && ufRow.macrorregiao !== state.macro) {
         state.uf = 'ALL';
-        const selUF = getEl<HTMLSelectElement>('filterUF');
-        if (selUF) selUF.value = 'ALL';
       }
+    }
+    if (state.municipioCod) {
+      const munMeta = window.MAPA_OD_SUS?.municipios_ibge?.[state.municipioCod];
+      const allowedUfs = new Set(getUfsForMacro(state.macro).map(x => x.uf));
+      if (!munMeta || !allowedUfs.has(munMeta[1])) {
+        state.municipioCod = '';
+        state.municipioNome = '';
+        const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+        if (inputMun) inputMun.value = '';
+      }
+    }
+    populateUfSelector();
+    populateMunicipioDatalist();
+    if (state.uf === 'ALL') {
+      odMapController.selectState('ALL', false);
     }
     refreshAll();
   });
 
   getEl<HTMLSelectElement>('filterUF')?.addEventListener('change', e => {
     state.uf = (e.target as HTMLSelectElement).value;
+    if (state.uf !== 'ALL') {
+      const ufRow = DB.resumo_uf.find(r => r.uf === state.uf);
+      if (ufRow && state.macro !== ufRow.macrorregiao) {
+        state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
+        const selMacro = getEl<HTMLSelectElement>('filterMacro');
+        if (selMacro) selMacro.value = state.macro;
+        populateUfSelector();
+      }
+    }
     state.municipioCod = '';
     state.municipioNome = '';
     const inputMun = getEl<HTMLInputElement>('filterMunicipio');
@@ -1825,12 +1903,17 @@ function bindEvents(): void {
     if (match) {
       state.municipioCod = match.cod;
       state.municipioNome = match.nome;
+      const ufRow = DB.resumo_uf.find(r => r.uf === match.uf);
+      if (ufRow && state.macro !== ufRow.macrorregiao) {
+        state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
+        const selMacro = getEl<HTMLSelectElement>('filterMacro');
+        if (selMacro) selMacro.value = state.macro;
+      }
       if (state.uf !== match.uf) {
         state.uf = match.uf;
-        const selUF = getEl<HTMLSelectElement>('filterUF');
-        if (selUF) selUF.value = match.uf;
-        populateMunicipioDatalist();
       }
+      populateUfSelector();
+      populateMunicipioDatalist();
       odMapController.focusMunicipality(match.cod);
       refreshAll();
     }
@@ -1871,14 +1954,13 @@ function bindEvents(): void {
     state.modalidade = 'ALL';
     const fAno = getEl<HTMLSelectElement>('filterAno');
     const fMac = getEl<HTMLSelectElement>('filterMacro');
-    const fUf = getEl<HTMLSelectElement>('filterUF');
     const fMun = getEl<HTMLInputElement>('filterMunicipio');
     const fMod = getEl<HTMLSelectElement>('filterModalidade');
     if (fAno) fAno.value = 'ALL';
     if (fMac) fMac.value = 'ALL';
-    if (fUf) fUf.value = 'ALL';
     if (fMun) fMun.value = '';
     if (fMod) fMod.value = 'ALL';
+    populateUfSelector();
     populateMunicipioDatalist();
     odMapController.selectState('ALL', true);
     refreshAll();
@@ -1890,12 +1972,19 @@ function bindEvents(): void {
     if (!target) return;
     const clickedUf = target.getAttribute('data-uf-click') || 'ALL';
     state.uf = state.uf === clickedUf ? 'ALL' : clickedUf;
+    if (state.uf !== 'ALL') {
+      const ufRow = DB.resumo_uf.find(r => r.uf === state.uf);
+      if (ufRow) {
+        state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
+        const selMacro = getEl<HTMLSelectElement>('filterMacro');
+        if (selMacro) selMacro.value = state.macro;
+      }
+    }
     state.municipioCod = '';
     state.municipioNome = '';
-    const selUF = getEl<HTMLSelectElement>('filterUF');
-    if (selUF) selUF.value = state.uf;
     const inputMun = getEl<HTMLInputElement>('filterMunicipio');
     if (inputMun) inputMun.value = '';
+    populateUfSelector();
     populateMunicipioDatalist();
     odMapController.initMap('odLeafletMap');
     odMapController.selectState(state.uf, true);
