@@ -52,6 +52,7 @@ export interface MapaODPayload {
   top_nacional: RotaOD[];
   rotas_por_uf: Record<string, RotaOD[]>;
   municipios_ibge?: Record<string, [string, string, number, string, number, number]>;
+  municipios_kpis?: Record<string, [number, number, number, number, number, number, number, number]>;
 }
 
 declare global {

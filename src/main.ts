@@ -53,10 +53,19 @@ const state: FiltroGlobalState = {
 const charts: Record<string, Chart> = {};
 const pendingChartConfigs: Record<string, any> = {};
 const municipioLookupByLabel = new Map<string, { cod: string; nome: string; uf: string }>();
+let currentMunicipioOptions: Array<{ cod: string; nome: string; uf: string; label: string; norm: string }> = [];
 let lastDatalistKey: string | null = null;
 let staticTablesRendered = false;
 let staticChartsRendered = false;
 let sigtapExcluidosRendered = false;
+
+function normalizeSearchStr(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
 function cloneChartConfig(val: any): any {
   if (val === null || typeof val !== 'object') return val;
@@ -182,11 +191,66 @@ function initSelectors(): void {
   populateMunicipioDatalist();
 }
 
+function syncClearMuniBtn(): void {
+  const clearBtn = getEl('btnClearMuniInput');
+  const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+  if (!clearBtn) return;
+  const hasValue = Boolean(state.municipioCod || inputMun?.value.trim());
+  clearBtn.classList.toggle('visible', hasValue);
+}
+
+function renderMuniDropdown(filterQuery = ''): void {
+  const listEl = getEl('muniDropdownList');
+  if (!listEl) return;
+
+  const q = normalizeSearchStr(filterQuery);
+  const matches = q
+    ? currentMunicipioOptions.filter(opt => opt.norm.includes(q) || opt.cod.includes(q))
+    : currentMunicipioOptions;
+
+  if (matches.length === 0) {
+    listEl.innerHTML = `<div class="muni-option-empty">Nenhum município encontrado</div>`;
+    return;
+  }
+
+  const MAX_VISIBLE = 150;
+  const slice = matches.slice(0, MAX_VISIBLE);
+  const rowsHtml = slice
+    .map(
+      opt => `
+      <div class="muni-option ${opt.cod === state.municipioCod ? 'selected' : ''}" data-muni-cod="${opt.cod}" role="option">
+        <span>${opt.nome}</span>
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600;">${opt.uf}</span>
+      </div>
+    `
+    )
+    .join('');
+
+  const extraNote =
+    matches.length > MAX_VISIBLE
+      ? `<div class="muni-option-empty">Mostrando ${MAX_VISIBLE} de ${fmtInt.format(matches.length)} — digite para filtrar</div>`
+      : '';
+
+  listEl.innerHTML = rowsHtml + extraNote;
+}
+
+function openMuniDropdown(showAll = false): void {
+  const listEl = getEl('muniDropdownList');
+  const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+  if (!listEl) return;
+  const query = showAll ? '' : inputMun?.value || '';
+  renderMuniDropdown(query);
+  listEl.classList.add('open');
+}
+
+function closeMuniDropdown(): void {
+  getEl('muniDropdownList')?.classList.remove('open');
+}
+
 function populateMunicipioDatalist(): void {
-  const datalist = getEl<HTMLDataListElement>('municipiosDatalist');
   const inputMun = getEl<HTMLInputElement>('filterMunicipio');
   const munDict = window.MAPA_OD_SUS?.municipios_ibge;
-  if (!datalist || !munDict) return;
+  if (!munDict) return;
 
   const filterKey = `${state.macro}|${state.uf}`;
   if (lastDatalistKey === filterKey) return;
@@ -201,21 +265,21 @@ function populateMunicipioDatalist(): void {
     .filter(([, meta]) => allowedUfs.has(meta[1]))
     .sort((a, b) => a[1][0].localeCompare(b[1][0], 'pt-BR'));
 
-  const frag = document.createDocumentFragment();
-  entries.forEach(([cod, meta]) => {
+  currentMunicipioOptions = entries.map(([cod, meta]) => {
     const nome = meta[0];
     const uf = meta[1];
     const label = `${nome} (${uf})`;
     municipioLookupByLabel.set(label.toLowerCase(), { cod, nome, uf });
     municipioLookupByLabel.set(`${nome} - ${uf}`.toLowerCase(), { cod, nome, uf });
     municipioLookupByLabel.set(cod, { cod, nome, uf });
-    const opt = document.createElement('option');
-    opt.value = label;
-    frag.appendChild(opt);
+    return {
+      cod,
+      nome,
+      uf,
+      label,
+      norm: normalizeSearchStr(`${nome} ${uf}`)
+    };
   });
-
-  datalist.innerHTML = '';
-  datalist.appendChild(frag);
 
   if (inputMun) {
     if (state.uf !== 'ALL') {
@@ -226,6 +290,7 @@ function populateMunicipioDatalist(): void {
       inputMun.placeholder = `Buscar município (${fmtInt.format(entries.length)})...`;
     }
   }
+  syncClearMuniBtn();
 }
 
 function renderMunicipioSummaryBar(): void {
@@ -316,6 +381,78 @@ function getFilteredCubo(): CuboUfAnoModalidade[] {
 }
 
 function updateGlobalKPIs(): void {
+  const kpiProdQtd = getEl('kpiProdQtd');
+  const kpiProdSub = getEl('kpiProdSub');
+  const kpiProcQtd = getEl('kpiProcQtd');
+  const kpiProcSub = getEl('kpiProcSub');
+  const kpiRI = getEl('kpiRI');
+  const kpiRISub = getEl('kpiRISub');
+  const kpiValTotal = getEl('kpiValTotal');
+  const kpiValSub = getEl('kpiValSub');
+  const kpiGlosa = getEl('kpiGlosa');
+
+  // Atualização a nível de Município quando um município está selecionado
+  if (state.municipioCod) {
+    const munMeta = window.MAPA_OD_SUS?.municipios_ibge?.[state.municipioCod];
+    const munNome = munMeta ? munMeta[0] : state.municipioNome;
+    const munUf = munMeta ? munMeta[1] : state.uf;
+    const munPcd = munMeta ? munMeta[2] : 0;
+    const kpiTuple = window.MAPA_OD_SUS?.municipios_kpis?.[state.municipioCod];
+
+    // Tuple: [prod_res, proc_res, val_res, fat_res, prod_ofe, proc_ofe, val_ofe, fat_ofe]
+    const prodRes = kpiTuple ? kpiTuple[0] : 0;
+    const procRes = kpiTuple ? kpiTuple[1] : 0;
+    const valRes = kpiTuple ? kpiTuple[2] : 0;
+    const fatRes = kpiTuple ? kpiTuple[3] : 0;
+    const prodOfe = kpiTuple ? kpiTuple[4] : 0;
+    const procOfe = kpiTuple ? kpiTuple[5] : 0;
+    const valOfe = kpiTuple ? kpiTuple[6] : 0;
+    const fatOfe = kpiTuple ? kpiTuple[7] : 0;
+
+    // Se for município polo ofertante, exibe produção ofertada e destaca moradores no subtítulo;
+    // caso contrário, exibe produção por residência dos moradores do município.
+    const isPolo = prodOfe > 0 || procOfe > 0;
+    const prod = isPolo ? prodOfe : prodRes;
+    const proc = isPolo ? procOfe : procRes;
+    const val = isPolo ? valOfe : valRes;
+    const fat = isPolo ? fatOfe : fatRes;
+    const ri = prod > 0 ? proc / prod : 0;
+    const invRi = ri > 0 ? fmtDec1.format(1 / ri) : '—';
+
+    if (kpiProdQtd) kpiProdQtd.textContent = fmtInt.format(prod);
+    if (kpiProdSub) {
+      kpiProdSub.textContent = isPolo
+        ? `Polo ${munNome} (${munUf}) • ${fmtInt.format(prodRes)} p/ moradores locais`
+        : prod > 0
+        ? `Moradores de ${munNome} (${munUf}) • Triênio 2022–2024`
+        : `Sem registro SIA/SUS para moradores de ${munNome} (${munUf})`;
+    }
+
+    if (kpiProcQtd) kpiProcQtd.textContent = fmtInt.format(proc);
+    if (kpiProcSub) {
+      kpiProcSub.textContent = isPolo
+        ? `Adaptações ofertadas no polo • ${fmtInt.format(procRes)} p/ moradores`
+        : `Avaliação, moldagem e ajustes • Triênio 2022–2024`;
+    }
+
+    if (kpiRI) kpiRI.textContent = fmtDec4.format(ri);
+    if (kpiRISub) {
+      kpiRISub.textContent =
+        ri > 0
+          ? `1 atendimento clínico a cada ${invRi} equipamentos`
+          : `Sem atendimentos clínicos registrados em ${munNome}`;
+    }
+
+    if (kpiValTotal) kpiValTotal.textContent = formatCompactBRL(val);
+    if (kpiValSub) {
+      kpiValSub.textContent = `${fmtInt.format(fat)} registros aprovados • Pop. PcD: ${fmtInt.format(munPcd)}`;
+    }
+    if (kpiGlosa) {
+      kpiGlosa.textContent = isPolo ? `Polo: ${munNome} (${munUf})` : `Município: ${munNome} (${munUf})`;
+    }
+    return;
+  }
+
   const filtered = getFilteredCubo();
 
   let prodQtdPro = 0,
@@ -354,23 +491,17 @@ function updateGlobalKPIs(): void {
   const glosaQtdPct = totQtdPro > 0 ? (glosaQtdUn * 100) / totQtdPro : 0;
   const glosaValPct = totValPro > 0 ? (glosaValReais * 100) / totValPro : 0;
 
-  const kpiProdQtd = getEl('kpiProdQtd');
-  const kpiProdSub = getEl('kpiProdSub');
   const pctGastoProd = totValApr > 0 ? (prodValApr * 100) / totValApr : 0;
   if (kpiProdQtd) kpiProdQtd.textContent = fmtInt.format(prodQtdApr);
   if (kpiProdSub) {
     kpiProdSub.textContent = `${fmtBRL.format(prodValApr)} (${fmtDec1.format(pctGastoProd)}% do orçamento)`;
   }
 
-  const kpiProcQtd = getEl('kpiProcQtd');
-  const kpiProcSub = getEl('kpiProcSub');
   if (kpiProcQtd) kpiProcQtd.textContent = fmtInt.format(procQtdApr);
   if (kpiProcSub) {
     kpiProcSub.textContent = `${fmtBRL.format(procValApr)} • Avaliação, moldagem e ajustes`;
   }
 
-  const kpiRI = getEl('kpiRI');
-  const kpiRISub = getEl('kpiRISub');
   const invRi = ri > 0 ? fmtDec1.format(1 / ri) : '—';
   if (kpiRI) kpiRI.textContent = fmtDec4.format(ri);
   if (kpiRISub) {
@@ -380,9 +511,6 @@ function updateGlobalKPIs(): void {
         : 'Sem registro simultâneo no filtro';
   }
 
-  const kpiValTotal = getEl('kpiValTotal');
-  const kpiValSub = getEl('kpiValSub');
-  const kpiGlosa = getEl('kpiGlosa');
   if (kpiValTotal) kpiValTotal.textContent = formatCompactBRL(totValApr);
   if (kpiValSub) {
     kpiValSub.textContent = `${fmtInt.format(faturamentos)} registros aprovados`;
@@ -1888,74 +2016,110 @@ function bindEvents(): void {
     refreshAll();
   });
 
-  const handleMunicipioSelection = (rawValue: string): void => {
-    const val = rawValue.trim();
-    if (!val) {
+  const inputMunEl = getEl<HTMLInputElement>('filterMunicipio');
+  const btnClearMuni = getEl('btnClearMuniInput');
+  const btnToggleMuni = getEl('btnToggleMuniList');
+  const muniDropdown = getEl('muniDropdownList');
+  const muniWrap = getEl('muniComboWrap');
+
+  const selectMunicipioByCode = (cod: string): void => {
+    const munMeta = window.MAPA_OD_SUS?.municipios_ibge?.[cod];
+    if (!munMeta) return;
+    const nome = munMeta[0];
+    const uf = munMeta[1];
+    state.municipioCod = cod;
+    state.municipioNome = nome;
+    if (inputMunEl) inputMunEl.value = `${nome} (${uf})`;
+
+    const ufRow = DB.resumo_uf.find(r => r.uf === uf);
+    if (ufRow && state.macro !== ufRow.macrorregiao) {
+      state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
+      const selMacro = getEl<HTMLSelectElement>('filterMacro');
+      if (selMacro) selMacro.value = state.macro;
+    }
+    if (state.uf !== uf) {
+      state.uf = uf;
+    }
+    populateUfSelector();
+    populateMunicipioDatalist();
+    syncClearMuniBtn();
+    closeMuniDropdown();
+    odMapController.focusMunicipality(cod);
+    refreshAll();
+  };
+
+  const clearMunicipioSelection = (): void => {
+    state.municipioCod = '';
+    state.municipioNome = '';
+    if (inputMunEl) inputMunEl.value = '';
+    syncClearMuniBtn();
+    closeMuniDropdown();
+    refreshAll();
+  };
+
+  inputMunEl?.addEventListener('focus', () => {
+    openMuniDropdown(true);
+  });
+
+  inputMunEl?.addEventListener('click', () => {
+    openMuniDropdown(true);
+  });
+
+  inputMunEl?.addEventListener('input', e => {
+    const val = (e.target as HTMLInputElement).value;
+    syncClearMuniBtn();
+    if (!val.trim()) {
       if (state.municipioCod) {
         state.municipioCod = '';
         state.municipioNome = '';
         refreshAll();
       }
+      openMuniDropdown(true);
       return;
     }
+    const exact = municipioLookupByLabel.get(val.trim().toLowerCase());
+    if (exact) {
+      selectMunicipioByCode(exact.cod);
+      return;
+    }
+    renderMuniDropdown(val);
+    muniDropdown?.classList.add('open');
+  });
 
-    const match = municipioLookupByLabel.get(val.toLowerCase());
-    if (match) {
-      state.municipioCod = match.cod;
-      state.municipioNome = match.nome;
-      const ufRow = DB.resumo_uf.find(r => r.uf === match.uf);
-      if (ufRow && state.macro !== ufRow.macrorregiao) {
-        state.macro = ufRow.macrorregiao as MacrorregiaoBrasil;
-        const selMacro = getEl<HTMLSelectElement>('filterMacro');
-        if (selMacro) selMacro.value = state.macro;
+  btnToggleMuni?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (muniDropdown?.classList.contains('open')) {
+      closeMuniDropdown();
+    } else {
+      openMuniDropdown(true);
+      inputMunEl?.focus();
+    }
+  });
+
+  btnClearMuni?.addEventListener('click', e => {
+    e.stopPropagation();
+    clearMunicipioSelection();
+    openMuniDropdown(true);
+    inputMunEl?.focus();
+  });
+
+  muniDropdown?.addEventListener('mousedown', e => {
+    const optEl = (e.target as HTMLElement | null)?.closest('[data-muni-cod]') as HTMLElement | null;
+    if (!optEl) return;
+    e.preventDefault();
+    const cod = optEl.getAttribute('data-muni-cod') || '';
+    if (cod) selectMunicipioByCode(cod);
+  });
+
+  document.addEventListener('click', e => {
+    if (muniWrap && !muniWrap.contains(e.target as Node)) {
+      closeMuniDropdown();
+      // Se o usuário digitou texto parcial inválido e saiu sem escolher, restaura o nome do município ativo
+      if (inputMunEl && state.municipioCod) {
+        const meta = window.MAPA_OD_SUS?.municipios_ibge?.[state.municipioCod];
+        if (meta) inputMunEl.value = `${meta[0]} (${meta[1]})`;
       }
-      if (state.uf !== match.uf) {
-        state.uf = match.uf;
-      }
-      populateUfSelector();
-      populateMunicipioDatalist();
-      odMapController.focusMunicipality(match.cod);
-      refreshAll();
-    }
-  };
-
-  let tempClearedMunLabel = '';
-  const inputMunEl = getEl<HTMLInputElement>('filterMunicipio');
-
-  inputMunEl?.addEventListener('focus', () => {
-    if (state.municipioCod && inputMunEl.value.trim()) {
-      tempClearedMunLabel = inputMunEl.value;
-      inputMunEl.value = '';
-    }
-  });
-
-  inputMunEl?.addEventListener('blur', () => {
-    if (!inputMunEl.value.trim() && tempClearedMunLabel && state.municipioCod) {
-      inputMunEl.value = tempClearedMunLabel;
-    }
-    tempClearedMunLabel = '';
-  });
-
-  inputMunEl?.addEventListener('change', e => {
-    const val = (e.target as HTMLInputElement).value;
-    tempClearedMunLabel = '';
-    handleMunicipioSelection(val);
-  });
-
-  inputMunEl?.addEventListener('input', e => {
-    const val = (e.target as HTMLInputElement).value;
-    if (val.trim() && municipioLookupByLabel.has(val.trim().toLowerCase())) {
-      tempClearedMunLabel = '';
-      handleMunicipioSelection(val);
-    } else if (!val.trim() && !tempClearedMunLabel) {
-      handleMunicipioSelection('');
-    }
-  });
-
-  inputMunEl?.addEventListener('search', () => {
-    if (!inputMunEl.value.trim()) {
-      tempClearedMunLabel = '';
-      handleMunicipioSelection('');
+      syncClearMuniBtn();
     }
   });
 
