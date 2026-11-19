@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,10 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="/orbita-mark.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
+
 <body>
 
   <div class="app-shell">
@@ -22,10 +26,9 @@
             <img src="/orbita-mark.svg" alt="Logo ORBITA" class="brand-logo" />
             <div>
               <div class="brand-title">ORBITA</div>
-              <div class="brand-eyebrow">SUS • Brasil (2022–2024)</div>
+              <div class="brand-eyebrow">Observatório de dados sobre tecnologia assistiva</div>
             </div>
           </div>
-          <div class="brand-meta">Observatório de dados sobre tecnologia assistiva</div>
         </div>
 
         <div class="nav-section-label">Monitoramento</div>
@@ -65,7 +68,8 @@
 
       <div class="sidebar-footer">
         <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
-        <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
+        <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
+            rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
         <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
           35 arquivos • 972 partições Parquet • 5.570 municípios
         </div>
@@ -108,15 +112,8 @@
           </div>
           <div class="filter-item">
             <label for="filterMunicipio">Município</label>
-            <input
-              type="text"
-              id="filterMunicipio"
-              list="municipiosDatalist"
-              class="filter-input"
-              placeholder="Buscar município (5.570)..."
-              autocomplete="off"
-              style="min-width:210px;"
-            />
+            <input type="text" id="filterMunicipio" list="municipiosDatalist" class="filter-input"
+              placeholder="Buscar município (5.570)..." autocomplete="off" style="min-width:210px;" />
             <datalist id="municipiosDatalist"></datalist>
           </div>
           <div class="filter-item">
@@ -200,7 +197,8 @@
           <div class="chapter-header">
             <div>
               <h2>Painel Geral de Entregas e Acompanhamento</h2>
-              <p>Acompanhamento mensal de equipamentos fornecidos pelo SUS, atendimentos clínicos de adaptação e recursos investidos por linha de cuidado.</p>
+              <p>Acompanhamento mensal de equipamentos fornecidos pelo SUS, atendimentos clínicos de adaptação e
+                recursos investidos por linha de cuidado.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="painel-visao">Evolução &amp; Categorias</button>
@@ -212,7 +210,10 @@
           <!-- Sub-view 1.1: Charts -->
           <div id="painel-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Alerta de Monitoramento:</strong> A entrega de equipamentos cresceu <strong>22,2%</strong> entre 2022 e 2024 (passando de 658,7 mil para 805,1 mil unidades/ano), mas o índice de acompanhamento clínico caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem o respectivo retorno registrado para adaptação ou treino.
+              <strong>Alerta de Monitoramento:</strong> A entrega de equipamentos cresceu <strong>22,2%</strong> entre
+              2022 e 2024 (passando de 658,7 mil para 805,1 mil unidades/ano), mas o índice de acompanhamento clínico
+              caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem
+              o respectivo retorno registrado para adaptação ou treino.
             </div>
             <div class="grid-2">
               <div class="card">
@@ -245,7 +246,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">10 Melhores e 10 Piores por Localidade</h3>
-                  <p class="card-subtitle" id="top10Subtitle">Comparativo de desempenho assistencial por estado ou município polo</p>
+                  <p class="card-subtitle" id="top10Subtitle">Comparativo de desempenho assistencial por estado ou
+                    município polo</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                   <div class="filter-item">
@@ -267,7 +269,8 @@
               </div>
               <div class="grid-2" style="margin-bottom:0;">
                 <div>
-                  <div style="font-size:12px;font-weight:700;color:var(--emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                  <div
+                    style="font-size:12px;font-weight:700;color:var(--emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
                     ▲ 10 Melhores Localidades
                   </div>
                   <div class="chart-box" style="height:310px;">
@@ -275,7 +278,8 @@
                   </div>
                 </div>
                 <div>
-                  <div style="font-size:12px;font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                  <div
+                    style="font-size:12px;font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
                     ▼ 10 Piores Localidades
                   </div>
                   <div class="chart-box" style="height:310px;">
@@ -292,7 +296,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Consolidado Anual de Produção, Orçamento e Cobertura</h3>
-                  <p class="card-subtitle">Equipamentos físicos e procedimentos clínicos separados conforme critério de auditoria</p>
+                  <p class="card-subtitle">Equipamentos físicos e procedimentos clínicos separados conforme critério de
+                    auditoria</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -340,7 +345,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Entregas e Cobertura por Grupo de Equipamentos</h3>
-                  <p class="card-subtitle">Separação entre equipamentos principais de reabilitação e itens de reposição/dispensação simples, calculados sobre a população com deficiência do Censo 2022</p>
+                  <p class="card-subtitle">Separação entre equipamentos principais de reabilitação e itens de
+                    reposição/dispensação simples, calculados sobre a população com deficiência do Censo 2022</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -373,7 +379,8 @@
           <div class="chapter-header">
             <div>
               <h2>Mapa Dinâmico de Origem e Destino e Cobertura por Estado</h2>
-              <p>Clique em qualquer Estado no mapa (ou nos cartões abaixo) para ver de onde os pacientes saem (moradia) e para onde vão buscar o recurso assistivo (polo de atendimento).</p>
+              <p>Clique em qualquer Estado no mapa (ou nos cartões abaixo) para ver de onde os pacientes saem (moradia)
+                e para onde vão buscar o recurso assistivo (polo de atendimento).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="terr-estados">Mapa Origem → Destino &amp; Estados</button>
@@ -443,7 +450,8 @@
                       <strong>Origem</strong> (Residência)
                     </span>
                     <span class="od-legend-item">
-                      <span class="legend-dot" style="background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,0.22);"></span>
+                      <span class="legend-dot"
+                        style="background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,0.22);"></span>
                       <strong>Destino</strong> (Polo SUS)
                     </span>
                     <span class="od-legend-item">
@@ -459,14 +467,17 @@
                       &gt; 250 km
                     </span>
                     <span class="od-legend-item">
-                      <span style="display:inline-block;width:44px;height:8px;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#10b981,#f59e0b,#e11d48);"></span>
+                      <span
+                        style="display:inline-block;width:44px;height:8px;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#10b981,#f59e0b,#e11d48);"></span>
                       Mapa de Calor (Densidade)
                     </span>
                   </div>
                 </div>
 
                 <!-- Right Side Inspector Panel -->
-                <div id="mapInspectorPanel" style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:18px;"></div>
+                <div id="mapInspectorPanel"
+                  style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:18px;">
+                </div>
               </div>
             </div>
 
@@ -474,7 +485,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Selecione um Estado para Focalizar o Mapa de Origem e Destino (27 UFs)</h3>
-                  <p class="card-subtitle">Ao clicar em qualquer cartão abaixo, o mapa acima dá zoom no estado e exibe todas as rotas dos pacientes</p>
+                  <p class="card-subtitle">Ao clicar em qualquer cartão abaixo, o mapa acima dá zoom no estado e exibe
+                    todas as rotas dos pacientes</p>
                 </div>
                 <span class="tag tag-prod" id="badgeUfTableYear">Consolidado</span>
               </div>
@@ -518,9 +530,11 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Municípios Ofertantes de Tecnologia Assistiva no Brasil</h3>
-                  <p class="card-subtitle">Comparativo entre o total produzido pelo município-polo e o total destinado aos seus próprios moradores</p>
+                  <p class="card-subtitle">Comparativo entre o total produzido pelo município-polo e o total destinado
+                    aos seus próprios moradores</p>
                 </div>
-                <input type="text" id="inputSearchPoloMun" class="filter-input" placeholder="🔎 Buscar município ou Região de Saúde..." style="min-width:260px;" />
+                <input type="text" id="inputSearchPoloMun" class="filter-input"
+                  placeholder="🔎 Buscar município ou Região de Saúde..." style="min-width:260px;" />
               </div>
               <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
                 <table class="sci-table" id="tablePolosMunicipaisRDS">
@@ -565,7 +579,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Concentração por Complexidade do Serviço</h3>
-                    <p class="card-subtitle">Razão de desigualdade entre municípios mais ricos e mais pobres (RII e Wagstaff)</p>
+                    <p class="card-subtitle">Razão de desigualdade entre municípios mais ricos e mais pobres (RII e
+                      Wagstaff)</p>
                   </div>
                 </div>
                 <div class="chart-box">
@@ -577,8 +592,10 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Cobertura Assistencial por Região e Faixa de Renda Municipal (5.570 Municípios)</h3>
-                  <p class="card-subtitle">Comparativo entre moradores atendidos e presença de serviço instalado no próprio município</p>
+                  <h3 class="card-title">Cobertura Assistencial por Região e Faixa de Renda Municipal (5.570 Municípios)
+                  </h3>
+                  <p class="card-subtitle">Comparativo entre moradores atendidos e presença de serviço instalado no
+                    próprio município</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -608,7 +625,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Mapeamento de Polos e Vazios Assistenciais (Agrupamentos Territoriais)</h3>
-                    <p class="card-subtitle">Identificação de 81 municípios em desertos assistenciais (Oeste Amazônico e Semiárido) frente a 533 polos consolidados</p>
+                    <p class="card-subtitle">Identificação de 81 municípios em desertos assistenciais (Oeste Amazônico e
+                      Semiárido) frente a 533 polos consolidados</p>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -633,7 +651,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Indicadores de Desigualdade Socioeconômica</h3>
-                    <p class="card-subtitle">Diferença absoluta (SII) e relativa (RII) entre municípios de maior e menor renda</p>
+                    <p class="card-subtitle">Diferença absoluta (SII) e relativa (RII) entre municípios de maior e menor
+                      renda</p>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -664,7 +683,8 @@
           <div class="chapter-header">
             <div>
               <h2>Rede de Serviços Habilitados (CNES, CER e Oficinas Ortopédicas)</h2>
-              <p>Acompanhamento dos 592 serviços ativos em 2024 (670 no triênio), desempenho por gestão (Pública, Filantrópica e Privada) e concentração de atendimentos.</p>
+              <p>Acompanhamento dos 592 serviços ativos em 2024 (670 no triênio), desempenho por gestão (Pública,
+                Filantrópica e Privada) e concentração de atendimentos.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="rede-visao">Perfil da Rede &amp; Concentração</button>
@@ -676,7 +696,12 @@
           <!-- Sub-view 3.1: Charts -->
           <div id="rede-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Perfil de Atendimento da Rede:</strong> As instituições <strong>Filantrópicas (219 serviços)</strong> respondem por <strong>57,0% do valor de equipamentos</strong> e <strong>66,4% de todos os atendimentos clínicos de adaptação</strong>. Já os <strong>73 prestadores Privados</strong> concentram-se na entrega comercial de produtos (15,6% do orçamento) com índice mínimo de acompanhamento clínico (2,4% dos atos). As <strong>8 Oficinas Ortopédicas</strong> registram o maior índice de cuidado contínuo da rede (<code>0,4135</code>).
+              <strong>Perfil de Atendimento da Rede:</strong> As instituições <strong>Filantrópicas (219
+                serviços)</strong> respondem por <strong>57,0% do valor de equipamentos</strong> e <strong>66,4% de
+                todos os atendimentos clínicos de adaptação</strong>. Já os <strong>73 prestadores Privados</strong>
+              concentram-se na entrega comercial de produtos (15,6% do orçamento) com índice mínimo de acompanhamento
+              clínico (2,4% dos atos). As <strong>8 Oficinas Ortopédicas</strong> registram o maior índice de cuidado
+              contínuo da rede (<code>0,4135</code>).
             </div>
             <div class="grid-3">
               <div class="card">
@@ -723,7 +748,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Monitoramento Individual dos Principais Serviços de Saúde (CNES)</h3>
-                  <p class="card-subtitle">Volume de equipamentos entregues, atendimentos de adaptação, municípios atendidos e taxa de rejeição</p>
+                  <p class="card-subtitle">Volume de equipamentos entregues, atendimentos de adaptação, municípios
+                    atendidos e taxa de rejeição</p>
                 </div>
               </div>
               <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
@@ -784,7 +810,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Comparativo Ajustado de Acompanhamento Clínico por Gestão e Região</h3>
-                    <p class="card-subtitle">Razão de taxas (Rate Ratio) comparada ao setor privado contratado e à Região Sudeste</p>
+                    <p class="card-subtitle">Razão de taxas (Rate Ratio) comparada ao setor privado contratado e à
+                      Região Sudeste</p>
                   </div>
                 </div>
                 <div class="table-responsive">
@@ -813,7 +840,8 @@
           <div class="chapter-header">
             <div>
               <h2>Deslocamento de Pacientes e Polos Regionais de Atração</h2>
-              <p>Monitoramento das viagens intermunicipais realizadas pelos pacientes para obter equipamentos e acompanhamento (16.170 rotas entre municípios).</p>
+              <p>Monitoramento das viagens intermunicipais realizadas pelos pacientes para obter equipamentos e
+                acompanhamento (16.170 rotas entre municípios).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="fluxos-visao">Distâncias &amp; Barreiras de Acesso</button>
@@ -825,7 +853,10 @@
           <!-- Sub-view 4.1: Distance Charts & Regional Summary -->
           <div id="fluxos-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Deslocamento para Atendimento:</strong> No Brasil, <strong>47,4% dos equipamentos</strong> e <strong>42,5% dos atendimentos clínicos</strong> exigem que o paciente viaje para outro município (sendo que 30,15% cruzam limites de Região de Saúde). Na <strong>Região Norte</strong>, a distância média percorrida chega a <strong>307,0 km</strong> por atendimento.
+              <strong>Deslocamento para Atendimento:</strong> No Brasil, <strong>47,4% dos equipamentos</strong> e
+              <strong>42,5% dos atendimentos clínicos</strong> exigem que o paciente viaje para outro município (sendo
+              que 30,15% cruzam limites de Região de Saúde). Na <strong>Região Norte</strong>, a distância média
+              percorrida chega a <strong>307,0 km</strong> por atendimento.
             </div>
 
             <div class="grid-2">
@@ -845,7 +876,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Fatores que Condicionam o Acesso Local e Clínico</h3>
-                    <p class="card-subtitle">Impacto da região, porte populacional e renda municipal (Razão de Chances / Taxas)</p>
+                    <p class="card-subtitle">Impacto da região, porte populacional e renda municipal (Razão de Chances /
+                      Taxas)</p>
                   </div>
                 </div>
                 <div class="chart-box">
@@ -858,7 +890,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Indicadores de Deslocamento Intermunicipal por Região</h3>
-                  <p class="card-subtitle">Proporção de pacientes atendidos fora do município de moradia e distâncias percorridas</p>
+                  <p class="card-subtitle">Proporção de pacientes atendidos fora do município de moradia e distâncias
+                    percorridas</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -887,7 +920,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Os 15 Maiores Polos Nacionais de Referência em Tecnologia Assistiva</h3>
-                  <p class="card-subtitle">Quantidade de municípios atendidos por cada polo, raio médio de atração de pacientes e diagnóstico de acompanhamento</p>
+                  <p class="card-subtitle">Quantidade de municípios atendidos por cada polo, raio médio de atração de
+                    pacientes e diagnóstico de acompanhamento</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -918,7 +952,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Principais Fluxos Entre Município de Moradia e Município de Atendimento</h3>
-                  <p class="card-subtitle">Rotas com maior volume de pacientes deslocados e distância em linha reta (SIRGAS 2000)</p>
+                  <p class="card-subtitle">Rotas com maior volume de pacientes deslocados e distância em linha reta
+                    (SIRGAS 2000)</p>
                 </div>
               </div>
               <div class="table-responsive" style="max-height:520px;overflow-y:auto;">
@@ -951,7 +986,8 @@
           <div class="chapter-header">
             <div>
               <h2>Perfil dos Pacientes Atendidos e Equipes Profissionais</h2>
-              <p>Principais causas de indicação clínica (CID-10), distribuição por faixa etária, sexo, raça/cor e atuação dos profissionais de reabilitação (CBO).</p>
+              <p>Principais causas de indicação clínica (CID-10), distribuição por faixa etária, sexo, raça/cor e
+                atuação dos profissionais de reabilitação (CBO).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="perfil-visao">Equipes &amp; Principais Causas</button>
@@ -963,14 +999,18 @@
           <!-- Sub-view 5.1: CBO & CID Charts -->
           <div id="perfil-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Atuação Multiprofissional:</strong> Fisioterapeutas (<strong>601,5 mil atendimentos</strong>, liderando Locomoção e Próteses) e Fonoaudiólogos (<strong>570,8 mil atendimentos</strong>, 90,3% da Saúde Auditiva) respondem por <strong>56,1% de todos os registros</strong>, atuando junto a Médicos Especialistas (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
+              <strong>Atuação Multiprofissional:</strong> Fisioterapeutas (<strong>601,5 mil atendimentos</strong>,
+              liderando Locomoção e Próteses) e Fonoaudiólogos (<strong>570,8 mil atendimentos</strong>, 90,3% da Saúde
+              Auditiva) respondem por <strong>56,1% de todos os registros</strong>, atuando junto a Médicos
+              Especialistas (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
             </div>
             <div class="grid-2">
               <div class="card">
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Participação dos Profissionais por Linha de Cuidado</h3>
-                    <p class="card-subtitle">Divisão de atendimentos entre Fisioterapia, Fonoaudiologia, Medicina e Terapia Ocupacional</p>
+                    <p class="card-subtitle">Divisão de atendimentos entre Fisioterapia, Fonoaudiologia, Medicina e
+                      Terapia Ocupacional</p>
                   </div>
                 </div>
                 <div class="chart-box">
@@ -982,7 +1022,8 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Principais Diagnósticos Atendidos (CID-10)</h3>
-                    <p class="card-subtitle">Perda auditiva, paralisia cerebral, amputações, deformidades ortopédicas, hanseníase e AVC</p>
+                    <p class="card-subtitle">Perda auditiva, paralisia cerebral, amputações, deformidades ortopédicas,
+                      hanseníase e AVC</p>
                   </div>
                 </div>
                 <div class="chart-box">
@@ -1082,7 +1123,8 @@
           <div class="chapter-header">
             <div>
               <h2>Catálogo de Tecnologias Assistivas e Procedimentos (SIGTAP)</h2>
-              <p>Consulta aos 167 itens monitorados no SUS (131 equipamentos e 36 atos clínicos) e aos 59 itens não incluídos no escopo de reabilitação.</p>
+              <p>Consulta aos 167 itens monitorados no SUS (131 equipamentos e 36 atos clínicos) e aos 59 itens não
+                incluídos no escopo de reabilitação.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="cat-incluidos">167 Tecnologias Monitoradas</button>
@@ -1096,10 +1138,12 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Lista Completa de Equipamentos e Procedimentos de Adaptação</h3>
-                  <p class="card-subtitle">Os 34 procedimentos clínicos marcados como "Custeio Global CER" possuem valor unitário R$ 0,00 na tabela por serem financiados via repasse mensal aos centros</p>
+                  <p class="card-subtitle">Os 34 procedimentos clínicos marcados como "Custeio Global CER" possuem valor
+                    unitário R$ 0,00 na tabela por serem financiados via repasse mensal aos centros</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                  <input type="text" id="inputSearchSigtap" class="filter-input" placeholder="🔎 Buscar por código ou nome do equipamento..." style="min-width:260px;" />
+                  <input type="text" id="inputSearchSigtap" class="filter-input"
+                    placeholder="🔎 Buscar por código ou nome do equipamento..." style="min-width:260px;" />
                   <select id="selectTipoSigtap" class="filter-select">
                     <option value="ALL">Todos os Itens (167)</option>
                     <option value="Produto">Apenas Equipamentos (131)</option>
@@ -1134,8 +1178,10 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Procedimentos do Subgrupo 07.01 Não Incluídos no Monitoramento de Reabilitação (59 itens)</h3>
-                  <p class="card-subtitle">Itens de ortodontia, próteses bucomaxilofaciais oncológicas, malhas para queimados e bolsas de ostomia</p>
+                  <h3 class="card-title">Procedimentos do Subgrupo 07.01 Não Incluídos no Monitoramento de Reabilitação
+                    (59 itens)</h3>
+                  <p class="card-subtitle">Itens de ortodontia, próteses bucomaxilofaciais oncológicas, malhas para
+                    queimados e bolsas de ostomia</p>
                 </div>
               </div>
               <div class="table-responsive" style="max-height:560px;overflow-y:auto;">
@@ -1163,7 +1209,9 @@
           <div class="chapter-header">
             <div>
               <h2>Base de Dados, Consulta Direta e Critérios de Qualidade</h2>
-              <p>Acesso aos 35 arquivos sincronizados do Zenodo (<code>10.5281/zenodo.24225551</code>), consulta SQL sobre as 972 partições Parquet e conformidade com os critérios da pasta <code>documentos_base</code>.</p>
+              <p>Acesso aos 35 arquivos sincronizados do Zenodo (<code>10.5281/zenodo.24225551</code>), consulta SQL
+                sobre as 972 partições Parquet e conformidade com os critérios da pasta <code>documentos_base</code>.
+              </p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="aud-arquivos">Consulta SQL &amp; 35 Arquivos Zenodo</button>
@@ -1178,7 +1226,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Consulta SQL Direta na Base Parquet (DuckDB + Node.js/TypeScript)</h3>
-                  <p class="card-subtitle">Execute consultas personalizadas sobre os 2.089.337 registros usando a tabela <code>sia_ta_parquet</code></p>
+                  <p class="card-subtitle">Execute consultas personalizadas sobre os 2.089.337 registros usando a tabela
+                    <code>sia_ta_parquet</code></p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn" id="btnSqlPreset1">Exemplo 1: Resumo por Ano</button>
@@ -1187,7 +1236,8 @@
                   <button class="btn btn-primary" id="btnRunDuckDB">▶ Executar Consulta</button>
                 </div>
               </div>
-              <textarea id="textareaDuckDBSql" class="code-pre" style="width:100%;min-height:110px;resize:vertical;margin-bottom:12px;">SELECT 
+              <textarea id="textareaDuckDBSql" class="code-pre"
+                style="width:100%;min-height:110px;resize:vertical;margin-bottom:12px;">SELECT 
   ano,
   tipo_registro,
   COUNT(*) AS registros,
@@ -1204,7 +1254,8 @@ ORDER BY ano, tipo_registro;</textarea>
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Arquivos da Base de Dados Sincronizados do Zenodo (35 arquivos)</h3>
-                  <p class="card-subtitle">Repositório oficial DOI: 10.5281/zenodo.24225551 • Armazenados localmente em <code>dados_zenodo/</code></p>
+                  <p class="card-subtitle">Repositório oficial DOI: 10.5281/zenodo.24225551 • Armazenados localmente em
+                    <code>dados_zenodo/</code></p>
                 </div>
                 <span class="tag tag-ok">35 Arquivos Sincronizados</span>
               </div>
@@ -1232,7 +1283,8 @@ ORDER BY ano, tipo_registro;</textarea>
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Qualidade de Preenchimento dos Registros no SUS (n = 2.089.337)</h3>
-                  <p class="card-subtitle">Percentual de registros com diagnóstico CID-10 (99,992%), profissional CBO (100%), sexo (100%), idade (99,98%) e raça/cor (90,8%)</p>
+                  <p class="card-subtitle">Percentual de registros com diagnóstico CID-10 (99,992%), profissional CBO
+                    (100%), sexo (100%), idade (99,98%) e raça/cor (90,8%)</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -1260,35 +1312,40 @@ ORDER BY ano, tipo_registro;</textarea>
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Etapas de Processamento e Filtragem da Base</h3>
-                    <p class="card-subtitle">Rastreabilidade desde os arquivos brutos do DATASUS até o painel consolidado</p>
+                    <p class="card-subtitle">Rastreabilidade desde os arquivos brutos do DATASUS até o painel
+                      consolidado</p>
                   </div>
                 </div>
                 <div class="clean-list">
                   <div class="clean-list-item">
                     <div>
                       <strong>1. Registros Ambulatoriais Brutos (SIA/SUS 2022–2024)</strong>
-                      <div style="font-size:12px;color:var(--text-muted);">Varredura das 972 partições mensais das 27 UFs</div>
+                      <div style="font-size:12px;color:var(--text-muted);">Varredura das 972 partições mensais das 27
+                        UFs</div>
                     </div>
                     <span class="metric">1.779.894.079</span>
                   </div>
                   <div class="clean-list-item">
                     <div>
                       <strong>2. Filtro de Tecnologias Assistivas (Subgrupo 07.01 SIGTAP)</strong>
-                      <div style="font-size:12px;color:var(--text-muted);">167 códigos incluídos e 59 descartados por não pertencerem à reabilitação</div>
+                      <div style="font-size:12px;color:var(--text-muted);">167 códigos incluídos e 59 descartados por
+                        não pertencerem à reabilitação</div>
                     </div>
                     <span class="metric" style="color:var(--primary);">2.089.337 regs</span>
                   </div>
                   <div class="clean-list-item">
                     <div>
                       <strong>3. Exclusão de Rejeições Administrativas (Glosas)</strong>
-                      <div style="font-size:12px;color:var(--text-muted);">2.553.283 solicitados − 55.734 glosados (2,18% físico | 1,13% financeiro)</div>
+                      <div style="font-size:12px;color:var(--text-muted);">2.553.283 solicitados − 55.734 glosados
+                        (2,18% físico | 1,13% financeiro)</div>
                     </div>
                     <span class="metric" style="color:var(--rose);">−55.734 un.</span>
                   </div>
                   <div class="clean-list-item">
                     <div>
                       <strong>4. Separação entre Equipamentos e Atendimentos Clínicos</strong>
-                      <div style="font-size:12px;color:var(--text-muted);">2.167.191 equipamentos entregues + 330.358 atendimentos de adaptação</div>
+                      <div style="font-size:12px;color:var(--text-muted);">2.167.191 equipamentos entregues + 330.358
+                        atendimentos de adaptação</div>
                     </div>
                     <span class="metric" style="color:var(--emerald);">2.497.549 itens</span>
                   </div>
@@ -1299,7 +1356,8 @@ ORDER BY ano, tipo_registro;</textarea>
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Parâmetros dos Modelos de Acesso e Intensidade</h3>
-                    <p class="card-subtitle">Fatores demográficos, econômicos e regionais avaliados nos 5.570 municípios</p>
+                    <p class="card-subtitle">Fatores demográficos, econômicos e regionais avaliados nos 5.570 municípios
+                    </p>
                   </div>
                 </div>
                 <div class="table-responsive" style="max-height:310px;overflow-y:auto;">
@@ -1326,7 +1384,8 @@ ORDER BY ano, tipo_registro;</textarea>
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Escopo de Monitoramento e Limites da Base Administrativa</h3>
-                  <p class="card-subtitle">O que os registros de faturamento do SUS permitem acompanhar e o que exige coleta complementar</p>
+                  <p class="card-subtitle">O que os registros de faturamento do SUS permitem acompanhar e o que exige
+                    coleta complementar</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -1353,7 +1412,8 @@ ORDER BY ano, tipo_registro;</textarea>
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Atendimento aos Critérios RECORD (Dados de Saúde Rotineiramente Coletados)</h3>
-                  <p class="card-subtitle">Conformidade com o documento RECORD Checklist.pdf da pasta documentos_base</p>
+                  <p class="card-subtitle">Conformidade com o documento RECORD Checklist.pdf da pasta documentos_base
+                  </p>
                 </div>
                 <span class="tag tag-ok">13 / 13 Critérios Atendidos</span>
               </div>
@@ -1377,7 +1437,8 @@ ORDER BY ano, tipo_registro;</textarea>
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Atendimento aos Critérios GATHER (Transparência em Estimativas de Saúde)</h3>
-                  <p class="card-subtitle">Conformidade com o documento gather-checklist.pdf da pasta documentos_base</p>
+                  <p class="card-subtitle">Conformidade com o documento gather-checklist.pdf da pasta documentos_base
+                  </p>
                 </div>
                 <span class="tag tag-ok">18 / 18 Critérios Atendidos</span>
               </div>
@@ -1409,4 +1470,5 @@ ORDER BY ano, tipo_registro;</textarea>
   <script src="/data/fluxos_od_mapa.js"></script>
   <script type="module" src="/src/main.ts"></script>
 </body>
+
 </html>
