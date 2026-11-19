@@ -139,69 +139,53 @@ function getCurvedLatLngs(
   return pts;
 }
 
-function samplePointAndAngle(
-  pts: [number, number][],
-  tRaw: number
-): { lat: number; lon: number; angleDeg: number } {
-  const n = pts.length;
-  if (n < 2) return { lat: pts[0]?.[0] || 0, lon: pts[0]?.[1] || 0, angleDeg: 0 };
-
-  const t = Math.max(0, Math.min(1, tRaw));
-  const scaled = t * (n - 1);
-  const idx = Math.min(n - 2, Math.floor(scaled));
-  const frac = scaled - idx;
-
-  const [latA, lonA] = pts[idx];
-  const [latB, lonB] = pts[idx + 1];
-
-  const lat = latA + (latB - latA) * frac;
-  const lon = lonA + (lonB - lonA) * frac;
-
-  const cosLat = Math.cos(((latA + latB) / 2) * (Math.PI / 180));
-  const dX = (lonB - lonA) * cosLat;
-  const dY = -(latB - latA);
-  const angleDeg = (Math.atan2(dY, dX) * 180) / Math.PI;
-
-  return { lat, lon, angleDeg };
-}
-
-function createArrowheadMarker(
-  pts: [number, number][],
-  color: string,
-  weight: number,
-  initialT = 0.5
-): L.Marker | null {
-  if (pts.length < 2) return null;
-  const { lat, lon, angleDeg } = samplePointAndAngle(pts, initialT);
-  const size = Math.round(11 + weight * 1.45);
-
-  const icon = L.divIcon({
-    className: 'od-arrow-icon',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    html: `<svg class="od-arrow-svg" width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${angleDeg.toFixed(1)}deg);display:block;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(15,23,42,0.28));">
-      <path d="M1.5 2 L14.5 8 L1.5 14 L4.8 8 Z" fill="${color}" stroke="#ffffff" stroke-width="1.25" stroke-linejoin="round" />
-    </svg>`
-  });
-
-  return L.marker([lat, lon], {
-    icon,
-    interactive: false,
-    keyboard: false
-  });
-}
-
-interface AnimatedArrowItem {
-  marker: L.Marker;
-  pts: [number, number][];
-  phase: number;
-  speed: number;
-}
-
 function getRouteColor(distKm: number): string {
   if (distKm >= 250) return '#e11d48';
   if (distKm >= 100) return '#d97706';
   return '#0284c7';
+}
+
+function getArrowMarkerId(distKm: number): string {
+  if (distKm >= 250) return 'od-arrow-rose';
+  if (distKm >= 100) return 'od-arrow-amber';
+  return 'od-arrow-blue';
+}
+
+function ensureSvgArrowMarkers(svgRoot: SVGSVGElement | null): void {
+  if (!svgRoot) return;
+  let defs = svgRoot.querySelector('defs[data-od-arrows="true"]') as SVGDefsElement | null;
+  if (defs) return;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  defs = document.createElementNS(svgNS, 'defs');
+  defs.setAttribute('data-od-arrows', 'true');
+
+  const specs = [
+    { id: 'od-arrow-blue', color: '#0284c7' },
+    { id: 'od-arrow-amber', color: '#d97706' },
+    { id: 'od-arrow-rose', color: '#e11d48' }
+  ];
+
+  specs.forEach(({ id, color }) => {
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', id);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '9.5');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '5');
+    marker.setAttribute('markerHeight', '5');
+    marker.setAttribute('orient', 'auto');
+    marker.setAttribute('markerUnits', 'strokeWidth');
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'M 0 1.2 L 10 5 L 0 8.8 L 2.4 5 Z');
+    path.setAttribute('fill', color);
+
+    marker.appendChild(path);
+    defs!.appendChild(marker);
+  });
+
+  svgRoot.insertBefore(defs, svgRoot.firstChild);
 }
 
 interface HeatPoint {
@@ -334,9 +318,6 @@ export class MapaOrigemDestinoController {
   private heatmapLayer: SimpleCanvasHeatmapLayer = new SimpleCanvasHeatmapLayer([]);
 
   private ibgeMeshCache: Map<string, any> = new Map();
-  private animatedArrows: AnimatedArrowItem[] = [];
-  private arrowAnimFrameId: number | null = null;
-  private arrowAnimStartTime: number = 0;
 
   private currentUF: string = 'ALL';
   private currentMod: string = 'ALL';
@@ -709,62 +690,9 @@ export class MapaOrigemDestinoController {
     return heatMapPts;
   }
 
-  private stopArrowAnimation(): void {
-    if (this.arrowAnimFrameId !== null) {
-      cancelAnimationFrame(this.arrowAnimFrameId);
-      this.arrowAnimFrameId = null;
-    }
-    this.animatedArrows = [];
-  }
-
-  private startArrowAnimation(): void {
-    if (this.arrowAnimFrameId !== null) {
-      cancelAnimationFrame(this.arrowAnimFrameId);
-      this.arrowAnimFrameId = null;
-    }
-    if (this.animatedArrows.length === 0) return;
-
-    this.arrowAnimStartTime = performance.now();
-
-    const step = (now: number): void => {
-      if (this.animatedArrows.length === 0) {
-        this.arrowAnimFrameId = null;
-        return;
-      }
-
-      const tabPanel = document.getElementById('tab-territorio');
-      const isVisible = !tabPanel || tabPanel.classList.contains('active');
-
-      if (isVisible) {
-        const elapsedSec = (now - this.arrowAnimStartTime) / 1000;
-        for (let i = 0; i < this.animatedArrows.length; i++) {
-          const item = this.animatedArrows[i];
-          const t = (item.phase + elapsedSec * item.speed) % 1;
-          const { lat, lon, angleDeg } = samplePointAndAngle(item.pts, t);
-
-          item.marker.setLatLng([lat, lon]);
-          const el = item.marker.getElement();
-          if (el) {
-            const svg = el.querySelector('.od-arrow-svg') as SVGElement | null;
-            if (svg) {
-              svg.style.transform = `rotate(${angleDeg.toFixed(1)}deg)`;
-              const fade = t < 0.08 ? t / 0.08 : t > 0.9 ? (1 - t) / 0.1 : 1;
-              svg.style.opacity = fade.toFixed(2);
-            }
-          }
-        }
-      }
-
-      this.arrowAnimFrameId = requestAnimationFrame(step);
-    };
-
-    this.arrowAnimFrameId = requestAnimationFrame(step);
-  }
-
   public updateView(_uf?: string): void {
     if (!this.map || !window.MAPA_OD_SUS) return;
 
-    this.stopArrowAnimation();
     this.arcsLayer.clearLayers();
     this.osrmRoadLayer.clearLayers();
     this.markersLayer.clearLayers();
@@ -806,7 +734,7 @@ export class MapaOrigemDestinoController {
 
     const drawRoutes = this.displayMode === 'routes' || this.displayMode === 'both';
 
-    routes.forEach((r, routeIdx) => {
+    routes.forEach(r => {
       const vol = this.currentMod === 'ALL' ? r.prod + r.proc : r.mods[this.currentMod] || 0;
       if (vol <= 0) return;
 
@@ -829,19 +757,19 @@ export class MapaOrigemDestinoController {
 
       if (!drawRoutes) return;
 
-      const latlngs = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d);
+      // Encurta levemente a ponta final para a seta encostar na borda do polo sem ficar encoberta
+      const fullCurve = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d, 26);
+      const latlngs = fullCurve.slice(0, fullCurve.length - 1);
       const weight = Math.max(1.8, Math.min(6.0, 1.8 + (vol / maxVol) * 4.2));
       const color = getRouteColor(r.dist_km);
+      const markerId = getArrowMarkerId(r.dist_km);
 
       const polyline = L.polyline(latlngs, {
         color,
         weight,
-        opacity: 0.78,
+        opacity: 0.82,
         className: 'od-flow-arc'
       });
-
-      const initialPhase = (routeIdx * 0.19) % 1;
-      const arrowMarker = createArrowheadMarker(latlngs, color, weight, initialPhase);
 
       polyline.bindTooltip(
         `<div style="font-size:12px;line-height:1.45;">
@@ -851,34 +779,21 @@ export class MapaOrigemDestinoController {
         { sticky: true }
       );
 
-      polyline.on('mouseover', () => {
-        polyline.setStyle({ weight: weight + 2, opacity: 1.0 });
-        arrowMarker?.setZIndexOffset(500);
-      });
-      polyline.on('mouseout', () => {
-        polyline.setStyle({ weight, opacity: 0.78 });
-        arrowMarker?.setZIndexOffset(0);
-      });
+      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 1.8, opacity: 1.0 }));
+      polyline.on('mouseout', () => polyline.setStyle({ weight, opacity: 0.82 }));
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
         void this.renderRouteDetailCardWithOSRM(r);
       });
 
       this.arcsLayer.addLayer(polyline);
-      if (arrowMarker) {
-        this.arcsLayer.addLayer(arrowMarker);
-        this.animatedArrows.push({
-          marker: arrowMarker,
-          pts: latlngs,
-          phase: initialPhase,
-          speed: 0.26
-        });
+
+      const pathEl = (polyline as unknown as { _path?: SVGPathElement })._path;
+      if (pathEl) {
+        ensureSvgArrowMarkers(pathEl.ownerSVGElement);
+        pathEl.setAttribute('marker-end', `url(#${markerId})`);
       }
     });
-
-    if (drawRoutes && this.animatedArrows.length > 0) {
-      this.startArrowAnimation();
-    }
 
     if (drawRoutes) {
       activeOrigins.forEach(orig => {
