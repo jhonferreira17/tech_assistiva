@@ -9,6 +9,7 @@ import { MapaOrigemDestinoController } from './components/mapaOrigemDestino';
 import type {
   BaseDadosObservatorioTASUS,
   CuboUfAnoModalidade,
+  EquipChartMetricKey,
   FiltroGlobalState,
   MacrorregiaoBrasil,
   ModalidadeISO9999
@@ -47,6 +48,24 @@ const MOD_SHORT_NAMES: Record<ModalidadeISO9999, string> = {
   TA06: 'Reabilitação Vocal'
 };
 
+const EQUIP_METRIC_LABELS: Record<EquipChartMetricKey, string> = {
+  equipamentos: 'Produtos (un.)',
+  atos: 'Atos Clínicos',
+  orcamento: 'Valor Total (R$)',
+  taxa_prod: 'Taxa Prod (/ 1.000 PcD)',
+  taxa_atos: 'Taxa Atos (/ 1.000 PcD)',
+  ri: 'RI — Razão de Integralidade'
+};
+
+const EQUIP_METRIC_SHORT: Record<EquipChartMetricKey, string> = {
+  equipamentos: 'Produtos',
+  atos: 'Atos Clínicos',
+  orcamento: 'Valor Total',
+  taxa_prod: 'Taxa Prod',
+  taxa_atos: 'Taxa Atos',
+  ri: 'RI'
+};
+
 const state: FiltroGlobalState = {
   ano: 'ALL',
   macro: 'ALL',
@@ -55,13 +74,33 @@ const state: FiltroGlobalState = {
   municipioNome: '',
   modalidades: [],
   equipChartGroup: 'categoria',
-  equipChartMetric: 'equipamentos',
+  equipChartMetrics: ['equipamentos'],
   sigtapSearch: '',
   sigtapTipo: 'ALL',
   poloMunSearch: '',
   top10Scope: 'UF',
   top10Metric: 'taxa_1k_pcd'
 };
+
+function syncEquipMetricMultiUI(): void {
+  const labelEl = getEl('equipMetricLabel');
+  const checks = Array.from(document.querySelectorAll<HTMLInputElement>('.chk-equip-metric'));
+  if (state.equipChartMetrics.length === 0) {
+    state.equipChartMetrics = ['equipamentos'];
+  }
+  checks.forEach(c => {
+    c.checked = state.equipChartMetrics.includes(c.value as EquipChartMetricKey);
+  });
+  if (labelEl) {
+    if (state.equipChartMetrics.length === 1) {
+      labelEl.textContent = EQUIP_METRIC_LABELS[state.equipChartMetrics[0]];
+    } else if (state.equipChartMetrics.length === 2) {
+      labelEl.textContent = state.equipChartMetrics.map(k => EQUIP_METRIC_SHORT[k]).join(' + ');
+    } else {
+      labelEl.textContent = `${state.equipChartMetrics.length} indicadores selecionados`;
+    }
+  }
+}
 
 function isModSelected(mod: string): boolean {
   return state.modalidades.length === 0 || state.modalidades.includes(mod as ModalidadeISO9999);
@@ -1433,14 +1472,18 @@ function renderCharts(forceStatic = false): void {
     });
   }
 
-  // Ordena pelo indicador ativo (exceto por Ano, que mantém ordem cronológica)
+  const selectedMetrics: EquipChartMetricKey[] =
+    state.equipChartMetrics.length > 0 ? state.equipChartMetrics : ['equipamentos'];
+  const primaryMetric = selectedMetrics[0];
+
+  // Ordena pelo primeiro indicador marcado (exceto por Ano, que mantém ordem cronológica)
   if (state.equipChartGroup !== 'ano') {
     statsList.sort((a, b) => {
-      if (state.equipChartMetric === 'atos') return b.proc - a.proc;
-      if (state.equipChartMetric === 'orcamento') return b.val - a.val;
-      if (state.equipChartMetric === 'taxa_prod') return b.taxaProd - a.taxaProd;
-      if (state.equipChartMetric === 'taxa_atos') return b.taxaAtos - a.taxaAtos;
-      if (state.equipChartMetric === 'ri') return b.ri - a.ri;
+      if (primaryMetric === 'atos') return b.proc - a.proc;
+      if (primaryMetric === 'orcamento') return b.val - a.val;
+      if (primaryMetric === 'taxa_prod') return b.taxaProd - a.taxaProd;
+      if (primaryMetric === 'taxa_atos') return b.taxaAtos - a.taxaAtos;
+      if (primaryMetric === 'ri') return b.ri - a.ri;
       return b.qtd - a.qtd;
     });
   }
@@ -1455,17 +1498,25 @@ function renderCharts(forceStatic = false): void {
   const equipRiVals = statsList.map(s => Number(s.ri.toFixed(4)));
   const equipColors = statsList.map(s => s.color);
 
-  const metricMode = state.equipChartMetric;
   const isVerticalEquip = state.equipChartGroup === 'ano';
+  const isMultiMetric = selectedMetrics.length > 1;
 
   if (equipTitleEl) {
-    if (metricMode === 'atos') equipTitleEl.textContent = 'Atos Clínicos de Adaptação por Categoria';
-    else if (metricMode === 'orcamento') equipTitleEl.textContent = 'Valor Total Aprovado (R$)';
-    else if (metricMode === 'ambos') equipTitleEl.textContent = 'Produtos (un.) vs. Valor Total Aprovado (R$)';
-    else if (metricMode === 'taxa_prod') equipTitleEl.textContent = 'Taxa de Produtos por 1.000 PcD (Censo 2022)';
-    else if (metricMode === 'taxa_atos') equipTitleEl.textContent = 'Taxa de Atos Clínicos por 1.000 PcD (Censo 2022)';
-    else if (metricMode === 'ri') equipTitleEl.textContent = 'Razão de Integralidade (RI — Índice de Acompanhamento)';
-    else equipTitleEl.textContent = 'Equipamentos Entregues por Categoria — Produtos (un.)';
+    if (isMultiMetric) {
+      equipTitleEl.textContent = `Comparativo: ${selectedMetrics.map(k => EQUIP_METRIC_SHORT[k]).join(' + ')}`;
+    } else if (primaryMetric === 'atos') {
+      equipTitleEl.textContent = 'Atos Clínicos de Adaptação por Categoria';
+    } else if (primaryMetric === 'orcamento') {
+      equipTitleEl.textContent = 'Valor Total Aprovado (R$)';
+    } else if (primaryMetric === 'taxa_prod') {
+      equipTitleEl.textContent = 'Taxa de Produtos por 1.000 PcD (Censo 2022)';
+    } else if (primaryMetric === 'taxa_atos') {
+      equipTitleEl.textContent = 'Taxa de Atos Clínicos por 1.000 PcD (Censo 2022)';
+    } else if (primaryMetric === 'ri') {
+      equipTitleEl.textContent = 'Razão de Integralidade (RI — Índice de Acompanhamento)';
+    } else {
+      equipTitleEl.textContent = 'Equipamentos Entregues por Categoria — Produtos (un.)';
+    }
   }
 
   const activeCatsTag =
@@ -1481,143 +1532,118 @@ function renderCharts(forceStatic = false): void {
         ? `por região • Categorias: ${activeCatsTag}`
         : `por categoria de equipamento (${activeModOrder.length})`;
 
-    if (metricMode === 'atos') {
+    if (isMultiMetric) {
+      equipSubEl.textContent = `${fmtInt.format(totalEquipFiltrado)} produtos • ${fmtInt.format(totalProcFiltrado)} atos • ${formatCompactBRL(totalOrcFiltrado)} • RI ${fmtDec4.format(riGlobalFiltrado)} (${scopeStr})`;
+    } else if (primaryMetric === 'atos') {
       equipSubEl.textContent = `Total: ${fmtInt.format(totalProcFiltrado)} atos clínicos (${scopeStr})`;
-    } else if (metricMode === 'orcamento') {
+    } else if (primaryMetric === 'orcamento') {
       equipSubEl.textContent = `Valor total aprovado: ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr})`;
-    } else if (metricMode === 'ambos') {
-      equipSubEl.textContent = `${fmtInt.format(totalEquipFiltrado)} produtos e ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr})`;
-    } else if (metricMode === 'taxa_prod') {
+    } else if (primaryMetric === 'taxa_prod') {
       const txGlobal = pcdDenomGlobal > 0 ? (totalEquipFiltrado * 1000) / pcdDenomGlobal : 0;
       equipSubEl.textContent = `Taxa média no recorte: ${fmtDec2.format(txGlobal)} produtos / 1.000 PcD (${scopeStr})`;
-    } else if (metricMode === 'taxa_atos') {
+    } else if (primaryMetric === 'taxa_atos') {
       const txAtosGlobal = pcdDenomGlobal > 0 ? (totalProcFiltrado * 1000) / pcdDenomGlobal : 0;
       equipSubEl.textContent = `Taxa média no recorte: ${fmtDec2.format(txAtosGlobal)} atos clínicos / 1.000 PcD (${scopeStr})`;
-    } else if (metricMode === 'ri') {
+    } else if (primaryMetric === 'ri') {
       equipSubEl.textContent = `Razão de Integralidade média: ${fmtDec4.format(riGlobalFiltrado)} (${scopeStr})`;
     } else {
       equipSubEl.textContent = `Total: ${fmtInt.format(totalEquipFiltrado)} produtos físicos (${scopeStr}) • Clique em uma barra para filtrar`;
     }
   }
 
-  const equipDatasets: any[] =
-    metricMode === 'ambos'
-      ? [
-          {
-            label: 'Produtos (un.)',
-            data: equipValues,
-            backgroundColor: '#0284c7',
-            borderRadius: 4,
-            ...(isVerticalEquip ? { yAxisID: 'y' } : { xAxisID: 'x' })
-          },
-          {
-            label: 'Valor Total (R$)',
-            data: equipValsBRL,
-            backgroundColor: '#059669',
-            borderRadius: 4,
-            ...(isVerticalEquip ? { yAxisID: 'y1' } : { xAxisID: 'x1' })
-          }
-        ]
-      : metricMode === 'atos'
-      ? [
-          {
-            label: 'Atos Clínicos',
-            data: equipProcVals,
-            backgroundColor: '#0d9488',
-            borderRadius: 5
-          }
-        ]
-      : metricMode === 'orcamento'
-      ? [
-          {
-            label: 'Valor Total (R$)',
-            data: equipValsBRL,
-            backgroundColor: '#059669',
-            borderRadius: 5
-          }
-        ]
-      : metricMode === 'taxa_prod'
-      ? [
-          {
-            label: 'Taxa Prod (/ 1.000 PcD)',
-            data: equipTaxaProdVals,
-            backgroundColor: '#0284c7',
-            borderRadius: 5
-          }
-        ]
-      : metricMode === 'taxa_atos'
-      ? [
-          {
-            label: 'Taxa Atos (/ 1.000 PcD)',
-            data: equipTaxaAtosVals,
-            backgroundColor: '#4f46e5',
-            borderRadius: 5
-          }
-        ]
-      : metricMode === 'ri'
-      ? [
-          {
-            label: 'Razão de Integralidade (RI)',
-            data: equipRiVals,
-            backgroundColor: '#d97706',
-            borderRadius: 5
-          }
-        ]
-      : [
-          {
-            label: 'Produtos (un.)',
-            data: equipValues,
-            backgroundColor: equipColors,
-            borderRadius: 5
-          }
-        ];
+  // Agrupa escalas compatíveis: volume (equipamentos/atos) vs financeiro (orcamento) vs taxas/RI
+  const getMetricUnitGroup = (k: EquipChartMetricKey): 'vol' | 'brl' | 'rate' => {
+    if (k === 'orcamento') return 'brl';
+    if (k === 'taxa_prod' || k === 'taxa_atos' || k === 'ri') return 'rate';
+    return 'vol';
+  };
+  const primaryUnitGroup = getMetricUnitGroup(primaryMetric);
+  const needsSecondaryAxis = selectedMetrics.some(k => getMetricUnitGroup(k) !== primaryUnitGroup);
+  const secondaryMetric = selectedMetrics.find(k => getMetricUnitGroup(k) !== primaryUnitGroup);
 
-  const equipScales: any =
-    metricMode === 'ambos'
+  const metricDataMap: Record<EquipChartMetricKey, number[]> = {
+    equipamentos: equipValues,
+    atos: equipProcVals,
+    orcamento: equipValsBRL,
+    taxa_prod: equipTaxaProdVals,
+    taxa_atos: equipTaxaAtosVals,
+    ri: equipRiVals
+  };
+
+  const metricColorMap: Record<EquipChartMetricKey, string> = {
+    equipamentos: '#0284c7',
+    atos: '#0d9488',
+    orcamento: '#059669',
+    taxa_prod: '#4f46e5',
+    taxa_atos: '#7c3aed',
+    ri: '#d97706'
+  };
+
+  const formatMetricAxisTick = (k: EquipChartMetricKey, v: number): string => {
+    if (k === 'orcamento') return formatCompactBRL(v);
+    if (k === 'ri') return fmtDec2.format(v);
+    if (k === 'taxa_prod' || k === 'taxa_atos') return fmtDec1.format(v);
+    return fmtInt.format(v);
+  };
+
+  const formatMetricBarLabel = (k: EquipChartMetricKey, idx: number, compact = false): string => {
+    if (k === 'ri') return fmtDec4.format(equipRiVals[idx] || 0);
+    if (k === 'taxa_prod') {
+      const v = fmtDec2.format(equipTaxaProdVals[idx] || 0);
+      return compact ? v : `${v} / 1k PcD`;
+    }
+    if (k === 'taxa_atos') {
+      const v = fmtDec2.format(equipTaxaAtosVals[idx] || 0);
+      return compact ? v : `${v} / 1k PcD`;
+    }
+    if (k === 'atos') {
+      const pVal = equipProcVals[idx] || 0;
+      const pct = totalProcFiltrado > 0 ? (pVal * 100) / totalProcFiltrado : 0;
+      return `${fmtInt.format(pVal)} (${fmtDec1.format(pct)}%)`;
+    }
+    if (k === 'orcamento') {
+      const brl = equipValsBRL[idx] || 0;
+      const pct = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
+      return `${formatCompactBRL(brl)} (${fmtDec1.format(pct)}%)`;
+    }
+    const val = equipValues[idx] || 0;
+    const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
+    return `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+  };
+
+  // Ajusta dinamicamente a altura do container conforme o nº de categorias e indicadores marcados
+  const equipChartBoxEl = getEl('equipChartBox');
+  if (equipChartBoxEl) {
+    if (isVerticalEquip) {
+      equipChartBoxEl.style.height = '360px';
+    } else if (selectedMetrics.length === 1) {
+      equipChartBoxEl.style.height = `${Math.max(300, equipLabels.length * 46 + 64)}px`;
+    } else {
+      const rowHeight = selectedMetrics.length * 24 + 26;
+      equipChartBoxEl.style.height = `${Math.max(380, equipLabels.length * rowHeight + 95)}px`;
+    }
+  }
+
+  const equipDatasets: any[] = selectedMetrics.map(k => {
+    const useSecAxis = needsSecondaryAxis && getMetricUnitGroup(k) !== primaryUnitGroup;
+    const axisProps = needsSecondaryAxis
       ? isVerticalEquip
-        ? {
-            x: {
-              type: 'category',
-              grid: { display: false },
-              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
-            },
-            y: {
-              type: 'linear',
-              position: 'left',
-              grid: { color: gridColor },
-              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
-              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
-            },
-            y1: {
-              type: 'linear',
-              position: 'right',
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: 'Valor Total (R$)', font: { size: 11 } },
-              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
-            }
-          }
-        : {
-            x: {
-              type: 'linear',
-              position: 'bottom',
-              grid: { color: gridColor },
-              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
-              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
-            },
-            x1: {
-              type: 'linear',
-              position: 'top',
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: 'Valor Total (R$)', font: { size: 11 } },
-              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
-            },
-            y: {
-              type: 'category',
-              grid: { display: false },
-              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
-            }
-          }
-      : isVerticalEquip
+        ? { yAxisID: useSecAxis ? 'y1' : 'y' }
+        : { xAxisID: useSecAxis ? 'x1' : 'x' }
+      : {};
+    return {
+      label: EQUIP_METRIC_LABELS[k],
+      data: metricDataMap[k],
+      backgroundColor: !isMultiMetric && k === 'equipamentos' ? equipColors : metricColorMap[k],
+      borderRadius: isMultiMetric ? 4 : 5,
+      categoryPercentage: isMultiMetric ? 0.76 : 0.72,
+      barPercentage: isMultiMetric ? 0.84 : 0.85,
+      ...axisProps
+    };
+  });
+
+  const equipScales: any = needsSecondaryAxis
+    ? isVerticalEquip
       ? {
           x: {
             type: 'category',
@@ -1626,28 +1652,46 @@ function renderCharts(forceStatic = false): void {
           },
           y: {
             type: 'linear',
+            position: 'left',
             grid: { color: gridColor },
+            title: { display: true, text: EQUIP_METRIC_SHORT[primaryMetric], font: { size: 11 } },
+            ticks: { callback: (v: any) => formatMetricAxisTick(primaryMetric, Number(v)) }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            title: {
+              display: true,
+              text: secondaryMetric ? EQUIP_METRIC_SHORT[secondaryMetric] : '',
+              font: { size: 11 }
+            },
             ticks: {
               callback: (v: any) =>
-                metricMode === 'orcamento'
-                  ? formatCompactBRL(Number(v))
-                  : metricMode === 'ri'
-                  ? fmtDec2.format(Number(v))
-                  : fmtInt.format(Number(v))
+                secondaryMetric ? formatMetricAxisTick(secondaryMetric, Number(v)) : String(v)
             }
           }
         }
       : {
           x: {
             type: 'linear',
+            position: 'bottom',
             grid: { color: gridColor },
+            title: { display: true, text: EQUIP_METRIC_SHORT[primaryMetric], font: { size: 11 } },
+            ticks: { callback: (v: any) => formatMetricAxisTick(primaryMetric, Number(v)) }
+          },
+          x1: {
+            type: 'linear',
+            position: 'top',
+            grid: { drawOnChartArea: false },
+            title: {
+              display: true,
+              text: secondaryMetric ? EQUIP_METRIC_SHORT[secondaryMetric] : '',
+              font: { size: 11 }
+            },
             ticks: {
               callback: (v: any) =>
-                metricMode === 'orcamento'
-                  ? formatCompactBRL(Number(v))
-                  : metricMode === 'ri'
-                  ? fmtDec2.format(Number(v))
-                  : fmtInt.format(Number(v))
+                secondaryMetric ? formatMetricAxisTick(secondaryMetric, Number(v)) : String(v)
             }
           },
           y: {
@@ -1655,7 +1699,32 @@ function renderCharts(forceStatic = false): void {
             grid: { display: false },
             ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
           }
-        };
+        }
+    : isVerticalEquip
+    ? {
+        x: {
+          type: 'category',
+          grid: { display: false },
+          ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+        },
+        y: {
+          type: 'linear',
+          grid: { color: gridColor },
+          ticks: { callback: (v: any) => formatMetricAxisTick(primaryMetric, Number(v)) }
+        }
+      }
+    : {
+        x: {
+          type: 'linear',
+          grid: { color: gridColor },
+          ticks: { callback: (v: any) => formatMetricAxisTick(primaryMetric, Number(v)) }
+        },
+        y: {
+          type: 'category',
+          grid: { display: false },
+          ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+        }
+      };
 
   createOrUpdateChart('chartEquipamentosEntregues', {
     type: 'bar',
@@ -1697,16 +1766,18 @@ function renderCharts(forceStatic = false): void {
         scheduleRefreshAll();
       },
       layout: {
-        padding: isVerticalEquip
-          ? { top: 26, right: 12 }
-          : { top: 6, right: metricMode === 'ri' || metricMode === 'taxa_prod' || metricMode === 'taxa_atos' ? 115 : 160 }
+        padding: isVerticalEquip ? { top: 26, right: 12 } : { top: 6, right: 160 }
       },
       plugins: {
-        legend: { display: metricMode === 'ambos' },
+        legend: { display: isMultiMetric },
         tooltip: {
           callbacks: {
             label: (ctx: any) => {
               const i = ctx.dataIndex;
+              if (isMultiMetric) {
+                const mKey = selectedMetrics[ctx.datasetIndex];
+                if (mKey) return ` ${EQUIP_METRIC_SHORT[mKey]}: ${formatMetricBarLabel(mKey, i)}`;
+              }
               const qtd = equipValues[i] || 0;
               const proc = equipProcVals[i] || 0;
               const pctQtd = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
@@ -1716,13 +1787,6 @@ function renderCharts(forceStatic = false): void {
               const txP = equipTaxaProdVals[i] || 0;
               const txA = equipTaxaAtosVals[i] || 0;
               const ri = equipRiVals[i] || 0;
-
-              if (metricMode === 'ambos') {
-                if (ctx.datasetIndex === 0) {
-                  return ` Produtos (un.): ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`;
-                }
-                return ` Valor Total: ${fmtBRL.format(brl)} (${fmtDec1.format(pctBrl)}%)`;
-              }
               return [
                 ` Produtos (un.): ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`,
                 ` Atos Clínicos: ${fmtInt.format(proc)} (${fmtDec1.format(pctProc)}%)`,
@@ -1744,35 +1808,16 @@ function renderCharts(forceStatic = false): void {
           const isVertical = chart.options.indexAxis === 'x';
 
           ctx.save();
-          ctx.font = metricMode === 'ambos' ? "600 10.5px 'Inter', sans-serif" : "600 11.5px 'Inter', sans-serif";
+          ctx.font = isMultiMetric ? "600 10.5px 'Inter', sans-serif" : "600 11.5px 'Inter', sans-serif";
           ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
 
           chart.data.datasets.forEach((_ds: any, dsIdx: number) => {
             const meta = chart.getDatasetMeta(dsIdx);
             if (!meta || meta.hidden || !meta.data) return;
+            const mKey = selectedMetrics[dsIdx] || 'equipamentos';
 
             meta.data.forEach((bar: any, idx: number) => {
-              let labelText = '';
-              if (metricMode === 'ri') {
-                labelText = fmtDec4.format(equipRiVals[idx] || 0);
-              } else if (metricMode === 'taxa_prod') {
-                labelText = `${fmtDec2.format(equipTaxaProdVals[idx] || 0)} / 1k PcD`;
-              } else if (metricMode === 'taxa_atos') {
-                labelText = `${fmtDec2.format(equipTaxaAtosVals[idx] || 0)} / 1k PcD`;
-              } else if (metricMode === 'atos') {
-                const pVal = equipProcVals[idx] || 0;
-                const pct = totalProcFiltrado > 0 ? (pVal * 100) / totalProcFiltrado : 0;
-                labelText = `${fmtInt.format(pVal)} (${fmtDec1.format(pct)}%)`;
-              } else if (metricMode === 'orcamento' || (metricMode === 'ambos' && dsIdx === 1)) {
-                const brl = equipValsBRL[idx] || 0;
-                const pct = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
-                labelText = `${formatCompactBRL(brl)} (${fmtDec1.format(pct)}%)`;
-              } else {
-                const val = equipValues[idx] || 0;
-                const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
-                labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
-              }
-
+              const labelText = formatMetricBarLabel(mKey, idx, selectedMetrics.length >= 3);
               if (isVertical) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
@@ -2742,9 +2787,39 @@ function bindEvents(): void {
     });
   });
 
-  getEl<HTMLSelectElement>('selectEquipChartMetric')?.addEventListener('change', e => {
-    state.equipChartMetric = (e.target as HTMLSelectElement).value as FiltroGlobalState['equipChartMetric'];
-    renderCharts();
+  // Multi-select Checkbox Listbox (Indicador do gráfico Equipamentos Entregues)
+  const equipMetricWrap = getEl('equipMetricWrap');
+  const equipMetricBtn = getEl('btnEquipMetricToggle');
+  const equipMetricDropdown = getEl('equipMetricDropdown');
+  const equipMetricChecks = Array.from(document.querySelectorAll<HTMLInputElement>('.chk-equip-metric'));
+
+  equipMetricBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = equipMetricDropdown?.classList.toggle('open') || false;
+    equipMetricBtn.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  document.addEventListener('click', e => {
+    if (equipMetricWrap && !equipMetricWrap.contains(e.target as Node)) {
+      equipMetricDropdown?.classList.remove('open');
+      equipMetricBtn?.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  equipMetricChecks.forEach(chk => {
+    chk.addEventListener('change', () => {
+      const checked = equipMetricChecks
+        .filter(c => c.checked)
+        .map(c => c.value as EquipChartMetricKey);
+      if (checked.length === 0) {
+        // Garante ao menos 1 indicador ativo
+        chk.checked = true;
+        return;
+      }
+      state.equipChartMetrics = checked;
+      syncEquipMetricMultiUI();
+      renderCharts();
+    });
   });
 
   getEl<HTMLSelectElement>('selectEquipChartGroup')?.addEventListener('change', e => {
