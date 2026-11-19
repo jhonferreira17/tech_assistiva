@@ -1586,10 +1586,16 @@ function renderCharts(forceStatic = false): void {
     return fmtInt.format(v);
   };
 
-  const formatMetricBarLabel = (k: EquipChartMetricKey, idx: number): string => {
+  const formatMetricBarLabel = (k: EquipChartMetricKey, idx: number, compact = false): string => {
     if (k === 'ri') return fmtDec4.format(equipRiVals[idx] || 0);
-    if (k === 'taxa_prod') return `${fmtDec2.format(equipTaxaProdVals[idx] || 0)} / 1k PcD`;
-    if (k === 'taxa_atos') return `${fmtDec2.format(equipTaxaAtosVals[idx] || 0)} / 1k PcD`;
+    if (k === 'taxa_prod') {
+      const v = fmtDec2.format(equipTaxaProdVals[idx] || 0);
+      return compact ? v : `${v} / 1k PcD`;
+    }
+    if (k === 'taxa_atos') {
+      const v = fmtDec2.format(equipTaxaAtosVals[idx] || 0);
+      return compact ? v : `${v} / 1k PcD`;
+    }
     if (k === 'atos') {
       const pVal = equipProcVals[idx] || 0;
       const pct = totalProcFiltrado > 0 ? (pVal * 100) / totalProcFiltrado : 0;
@@ -1605,6 +1611,19 @@ function renderCharts(forceStatic = false): void {
     return `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
   };
 
+  // Ajusta dinamicamente a altura do container conforme o nº de categorias e indicadores marcados
+  const equipChartBoxEl = getEl('equipChartBox');
+  if (equipChartBoxEl) {
+    if (isVerticalEquip) {
+      equipChartBoxEl.style.height = '360px';
+    } else if (selectedMetrics.length === 1) {
+      equipChartBoxEl.style.height = `${Math.max(300, equipLabels.length * 46 + 64)}px`;
+    } else {
+      const rowHeight = selectedMetrics.length * 24 + 26;
+      equipChartBoxEl.style.height = `${Math.max(380, equipLabels.length * rowHeight + 95)}px`;
+    }
+  }
+
   const equipDatasets: any[] = selectedMetrics.map(k => {
     const useSecAxis = needsSecondaryAxis && getMetricUnitGroup(k) !== primaryUnitGroup;
     const axisProps = needsSecondaryAxis
@@ -1617,6 +1636,8 @@ function renderCharts(forceStatic = false): void {
       data: metricDataMap[k],
       backgroundColor: !isMultiMetric && k === 'equipamentos' ? equipColors : metricColorMap[k],
       borderRadius: isMultiMetric ? 4 : 5,
+      categoryPercentage: isMultiMetric ? 0.76 : 0.72,
+      barPercentage: isMultiMetric ? 0.84 : 0.85,
       ...axisProps
     };
   });
@@ -1796,7 +1817,7 @@ function renderCharts(forceStatic = false): void {
             const mKey = selectedMetrics[dsIdx] || 'equipamentos';
 
             meta.data.forEach((bar: any, idx: number) => {
-              const labelText = formatMetricBarLabel(mKey, idx);
+              const labelText = formatMetricBarLabel(mKey, idx, selectedMetrics.length >= 3);
               if (isVertical) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
