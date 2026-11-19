@@ -139,37 +139,63 @@ function getCurvedLatLngs(
   return pts;
 }
 
+function samplePointAndAngle(
+  pts: [number, number][],
+  tRaw: number
+): { lat: number; lon: number; angleDeg: number } {
+  const n = pts.length;
+  if (n < 2) return { lat: pts[0]?.[0] || 0, lon: pts[0]?.[1] || 0, angleDeg: 0 };
+
+  const t = Math.max(0, Math.min(1, tRaw));
+  const scaled = t * (n - 1);
+  const idx = Math.min(n - 2, Math.floor(scaled));
+  const frac = scaled - idx;
+
+  const [latA, lonA] = pts[idx];
+  const [latB, lonB] = pts[idx + 1];
+
+  const lat = latA + (latB - latA) * frac;
+  const lon = lonA + (lonB - lonA) * frac;
+
+  const cosLat = Math.cos(((latA + latB) / 2) * (Math.PI / 180));
+  const dX = (lonB - lonA) * cosLat;
+  const dY = -(latB - latA);
+  const angleDeg = (Math.atan2(dY, dX) * 180) / Math.PI;
+
+  return { lat, lon, angleDeg };
+}
+
 function createArrowheadMarker(
   pts: [number, number][],
   color: string,
   weight: number,
-  ratio = 0.72
+  initialT = 0.5
 ): L.Marker | null {
   if (pts.length < 2) return null;
-  const idx = Math.max(1, Math.min(pts.length - 1, Math.floor((pts.length - 1) * ratio)));
-  const [latA, lonA] = pts[idx - 1];
-  const [latB, lonB] = pts[idx];
-
-  const cosLat = Math.cos(((latA + latB) / 2) * (Math.PI / 180));
-  const dX = (lonB - lonA) * cosLat;
-  const dY = -(latB - latA); // Y cresce para o sul na tela
-  const angleDeg = (Math.atan2(dY, dX) * 180) / Math.PI;
+  const { lat, lon, angleDeg } = samplePointAndAngle(pts, initialT);
   const size = Math.round(11 + weight * 1.45);
 
   const icon = L.divIcon({
     className: 'od-arrow-icon',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    html: `<svg width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${angleDeg.toFixed(1)}deg);display:block;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(15,23,42,0.28));">
+    html: `<svg class="od-arrow-svg" width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${angleDeg.toFixed(1)}deg);display:block;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(15,23,42,0.28));">
       <path d="M1.5 2 L14.5 8 L1.5 14 L4.8 8 Z" fill="${color}" stroke="#ffffff" stroke-width="1.25" stroke-linejoin="round" />
     </svg>`
   });
 
-  return L.marker([latB, lonB], {
+  return L.marker([lat, lon], {
     icon,
     interactive: false,
     keyboard: false
   });
+}
+
+interface AnimatedArrowItem {
+  marker: L.Marker;
+  pts: [number, number][];
+  phase: number;
+  speed: number;
 }
 
 function getRouteColor(distKm: number): string {
@@ -308,6 +334,9 @@ export class MapaOrigemDestinoController {
   private heatmapLayer: SimpleCanvasHeatmapLayer = new SimpleCanvasHeatmapLayer([]);
 
   private ibgeMeshCache: Map<string, any> = new Map();
+  private animatedArrows: AnimatedArrowItem[] = [];
+  private arrowAnimFrameId: number | null = null;
+  private arrowAnimStartTime: number = 0;
 
   private currentUF: string = 'ALL';
   private currentMod: string = 'ALL';
@@ -680,9 +709,62 @@ export class MapaOrigemDestinoController {
     return heatMapPts;
   }
 
+  private stopArrowAnimation(): void {
+    if (this.arrowAnimFrameId !== null) {
+      cancelAnimationFrame(this.arrowAnimFrameId);
+      this.arrowAnimFrameId = null;
+    }
+    this.animatedArrows = [];
+  }
+
+  private startArrowAnimation(): void {
+    if (this.arrowAnimFrameId !== null) {
+      cancelAnimationFrame(this.arrowAnimFrameId);
+      this.arrowAnimFrameId = null;
+    }
+    if (this.animatedArrows.length === 0) return;
+
+    this.arrowAnimStartTime = performance.now();
+
+    const step = (now: number): void => {
+      if (this.animatedArrows.length === 0) {
+        this.arrowAnimFrameId = null;
+        return;
+      }
+
+      const tabPanel = document.getElementById('tab-territorio');
+      const isVisible = !tabPanel || tabPanel.classList.contains('active');
+
+      if (isVisible) {
+        const elapsedSec = (now - this.arrowAnimStartTime) / 1000;
+        for (let i = 0; i < this.animatedArrows.length; i++) {
+          const item = this.animatedArrows[i];
+          const t = (item.phase + elapsedSec * item.speed) % 1;
+          const { lat, lon, angleDeg } = samplePointAndAngle(item.pts, t);
+
+          item.marker.setLatLng([lat, lon]);
+          const el = item.marker.getElement();
+          if (el) {
+            const svg = el.querySelector('.od-arrow-svg') as SVGElement | null;
+            if (svg) {
+              svg.style.transform = `rotate(${angleDeg.toFixed(1)}deg)`;
+              const fade = t < 0.08 ? t / 0.08 : t > 0.9 ? (1 - t) / 0.1 : 1;
+              svg.style.opacity = fade.toFixed(2);
+            }
+          }
+        }
+      }
+
+      this.arrowAnimFrameId = requestAnimationFrame(step);
+    };
+
+    this.arrowAnimFrameId = requestAnimationFrame(step);
+  }
+
   public updateView(_uf?: string): void {
     if (!this.map || !window.MAPA_OD_SUS) return;
 
+    this.stopArrowAnimation();
     this.arcsLayer.clearLayers();
     this.osrmRoadLayer.clearLayers();
     this.markersLayer.clearLayers();
@@ -724,7 +806,7 @@ export class MapaOrigemDestinoController {
 
     const drawRoutes = this.displayMode === 'routes' || this.displayMode === 'both';
 
-    routes.forEach(r => {
+    routes.forEach((r, routeIdx) => {
       const vol = this.currentMod === 'ALL' ? r.prod + r.proc : r.mods[this.currentMod] || 0;
       if (vol <= 0) return;
 
@@ -758,7 +840,8 @@ export class MapaOrigemDestinoController {
         className: 'od-flow-arc'
       });
 
-      const arrowMarker = createArrowheadMarker(latlngs, color, weight, 0.72);
+      const initialPhase = (routeIdx * 0.19) % 1;
+      const arrowMarker = createArrowheadMarker(latlngs, color, weight, initialPhase);
 
       polyline.bindTooltip(
         `<div style="font-size:12px;line-height:1.45;">
@@ -784,8 +867,18 @@ export class MapaOrigemDestinoController {
       this.arcsLayer.addLayer(polyline);
       if (arrowMarker) {
         this.arcsLayer.addLayer(arrowMarker);
+        this.animatedArrows.push({
+          marker: arrowMarker,
+          pts: latlngs,
+          phase: initialPhase,
+          speed: 0.26
+        });
       }
     });
+
+    if (drawRoutes && this.animatedArrows.length > 0) {
+      this.startArrowAnimation();
+    }
 
     if (drawRoutes) {
       activeOrigins.forEach(orig => {
