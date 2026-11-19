@@ -145,307 +145,6 @@ function getRouteColor(distKm: number): string {
   return '#0284c7';
 }
 
-interface FlowArrowRoute {
-  pts: [number, number][];
-  color: string;
-  weight: number;
-}
-
-interface CachedScreenRoute {
-  xs: Float32Array;
-  ys: Float32Array;
-  cumLen: Float32Array;
-  totalLen: number;
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-  color: string;
-  stepPx: number;
-  arrowLen: number;
-  arrowHalfW: number;
-}
-
-/**
- * Camada Canvas 2D de Setas em Movimento Contínuo ao longo das rotas Origem → Destino.
- * Otimizada para 60 FPS sem delay no zoom/pan:
- * - Projeção geográfica cacheada em TypedArrays (só recalcula em moveend/zoomend/resize)
- * - Viewport culling em 2 níveis (bounding box por rota + recorte por seta)
- * - Integração nativa com `leaflet-zoom-hide` e pausa durante transições de zoom/pan
- * - Desenho vetorial direto (cos/sin) sem ctx.save()/restore() no loop interno
- */
-class AnimatedFlowArrowsLayer extends L.Layer {
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
-  private routes: FlowArrowRoute[] = [];
-  private cachedRoutes: CachedScreenRoute[] = [];
-  private animId: number | null = null;
-  private startTime: number = 0;
-  private isInteracting: boolean = false;
-  private viewW: number = 0;
-  private viewH: number = 0;
-  private dpr: number = 1;
-  private tabPanelEl: HTMLElement | null = null;
-
-  constructor(routes: FlowArrowRoute[] = []) {
-    super();
-    this.routes = routes;
-  }
-
-  public setRoutes(routes: FlowArrowRoute[]): void {
-    this.routes = routes;
-    this.rebuildProjectionCache();
-    if (this.routes.length > 0 && this.canvas && this.animId === null) {
-      this.startLoop();
-    } else if (this.routes.length === 0) {
-      this.stopLoop();
-      this.clearCanvas();
-    }
-  }
-
-  public refreshProjection(): void {
-    this.syncCanvasAndCache();
-  }
-
-  public onAdd(map: L.Map): this {
-    this.canvas = L.DomUtil.create(
-      'canvas',
-      'leaflet-flow-arrows-layer leaflet-zoom-hide'
-    ) as HTMLCanvasElement;
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.pointerEvents = 'none';
-    this.canvas.style.zIndex = '420';
-    this.ctx = this.canvas.getContext('2d');
-    this.tabPanelEl = document.getElementById('tab-territorio');
-
-    const pane = map.getPane('overlayPane');
-    if (pane) pane.appendChild(this.canvas);
-
-    map.on('zoomstart movestart', this.onInteractStart, this);
-    map.on('moveend zoomend viewreset resize', this.onInteractEnd, this);
-    this.syncCanvasAndCache();
-    if (this.routes.length > 0) {
-      this.startLoop();
-    }
-    return this;
-  }
-
-  public onRemove(map: L.Map): this {
-    this.stopLoop();
-    map.off('zoomstart movestart', this.onInteractStart, this);
-    map.off('moveend zoomend viewreset resize', this.onInteractEnd, this);
-    if (this.canvas && this.canvas.parentNode) {
-      this.canvas.parentNode.removeChild(this.canvas);
-    }
-    this.canvas = null;
-    this.ctx = null;
-    this.cachedRoutes = [];
-    return this;
-  }
-
-  private onInteractStart = (): void => {
-    this.isInteracting = true;
-  };
-
-  private onInteractEnd = (): void => {
-    this.isInteracting = false;
-    this.syncCanvasAndCache();
-    if (this.cachedRoutes.length > 0) {
-      this.drawFrame((performance.now() - this.startTime) / 1000);
-    }
-  };
-
-  private syncCanvasAndCache = (): void => {
-    if (!this.canvas || !this._map) return;
-    const size = this._map.getSize();
-    if (size.x <= 0 || size.y <= 0) return;
-
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.viewW = size.x;
-    this.viewH = size.y;
-
-    const topLeft = this._map.containerPointToLayerPoint([0, 0]);
-    L.DomUtil.setPosition(this.canvas, topLeft);
-
-    const targetW = Math.max(1, Math.round(size.x * this.dpr));
-    const targetH = Math.max(1, Math.round(size.y * this.dpr));
-    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
-      this.canvas.width = targetW;
-      this.canvas.height = targetH;
-      this.canvas.style.width = `${size.x}px`;
-      this.canvas.style.height = `${size.y}px`;
-    }
-
-    this.rebuildProjectionCache();
-  };
-
-  private rebuildProjectionCache(): void {
-    const map = this._map;
-    if (!map || this.routes.length === 0) {
-      this.cachedRoutes = [];
-      return;
-    }
-
-    const nextCache: CachedScreenRoute[] = [];
-    for (let rIdx = 0; rIdx < this.routes.length; rIdx++) {
-      const route = this.routes[rIdx];
-      const n = route.pts.length;
-      if (n < 2) continue;
-
-      const xs = new Float32Array(n);
-      const ys = new Float32Array(n);
-      const cumLen = new Float32Array(n);
-      let totalLen = 0;
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-
-      for (let i = 0; i < n; i++) {
-        const p = map.latLngToContainerPoint(route.pts[i]);
-        xs[i] = p.x;
-        ys[i] = p.y;
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y < minY) minY = p.y;
-        if (p.y > maxY) maxY = p.y;
-
-        if (i > 0) {
-          totalLen += Math.hypot(p.x - xs[i - 1], p.y - ys[i - 1]);
-          cumLen[i] = totalLen;
-        }
-      }
-
-      if (totalLen < 12) continue;
-
-      const stepPx = Math.max(18, 15 + route.weight * 1.15);
-      const arrowLen = Math.max(7.5, Math.min(11.5, 6.5 + route.weight * 0.9));
-
-      nextCache.push({
-        xs,
-        ys,
-        cumLen,
-        totalLen,
-        minX,
-        maxX,
-        minY,
-        maxY,
-        color: route.color,
-        stepPx,
-        arrowLen,
-        arrowHalfW: arrowLen * 0.48
-      });
-    }
-
-    this.cachedRoutes = nextCache;
-  }
-
-  private clearCanvas(): void {
-    if (!this.canvas || !this.ctx) return;
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  private stopLoop(): void {
-    if (this.animId !== null) {
-      cancelAnimationFrame(this.animId);
-      this.animId = null;
-    }
-  }
-
-  private startLoop(): void {
-    this.stopLoop();
-    this.startTime = performance.now();
-
-    const frame = (now: number): void => {
-      if (!this.canvas || !this._map || this.routes.length === 0) {
-        this.animId = null;
-        return;
-      }
-
-      if (!document.hidden && !this.isInteracting) {
-        const isVisible = !this.tabPanelEl || this.tabPanelEl.classList.contains('active');
-        if (isVisible && this.cachedRoutes.length > 0) {
-          this.drawFrame((now - this.startTime) / 1000);
-        }
-      }
-      this.animId = requestAnimationFrame(frame);
-    };
-
-    this.animId = requestAnimationFrame(frame);
-  }
-
-  private drawFrame(elapsedSec: number): void {
-    const ctx = this.ctx;
-    if (!ctx || this.viewW <= 0 || this.viewH <= 0) return;
-
-    const w = this.viewW;
-    const h = this.viewH;
-    const pad = 18;
-    const speedPx = 22;
-
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.lineWidth = 0.85;
-
-    for (let rIdx = 0; rIdx < this.cachedRoutes.length; rIdx++) {
-      const route = this.cachedRoutes[rIdx];
-
-      // Viewport culling nível 1: ignora rota inteira fora da tela
-      if (route.maxX < -pad || route.minX > w + pad || route.maxY < -pad || route.minY > h + pad) {
-        continue;
-      }
-
-      const { xs, ys, cumLen, totalLen, stepPx, arrowLen, arrowHalfW } = route;
-      const offsetPx = (elapsedSec * speedPx) % stepPx;
-      const tipX = arrowLen * 0.65;
-      const tailX = -arrowLen * 0.45;
-      const notchX = -arrowLen * 0.16;
-
-      ctx.fillStyle = route.color;
-      ctx.beginPath();
-
-      let segIdx = 0;
-      const lastSeg = cumLen.length - 2;
-      for (let dist = offsetPx; dist < totalLen - 9; dist += stepPx) {
-        if (dist < 6) continue;
-        while (segIdx < lastSeg && cumLen[segIdx + 1] < dist) {
-          segIdx++;
-        }
-
-        const segStart = cumLen[segIdx];
-        const segLen = Math.max(0.0001, cumLen[segIdx + 1] - segStart);
-        const frac = (dist - segStart) / segLen;
-
-        const xA = xs[segIdx];
-        const yA = ys[segIdx];
-        const dx = xs[segIdx + 1] - xA;
-        const dy = ys[segIdx + 1] - yA;
-        const x = xA + dx * frac;
-        const y = yA + dy * frac;
-
-        // Viewport culling nível 2: ignora setas individuais fora da viewport (crucial em zoom alto)
-        if (x < -pad || x > w + pad || y < -pad || y > h + pad) continue;
-
-        const invHyp = 1 / Math.max(0.0001, Math.hypot(dx, dy));
-        const cos = dx * invHyp;
-        const sin = dy * invHyp;
-
-        // 4 vértices rotacionados diretamente sem ctx.save()/restore()
-        ctx.moveTo(x + tipX * cos, y + tipX * sin);
-        ctx.lineTo(x + tailX * cos + arrowHalfW * sin, y + tailX * sin - arrowHalfW * cos);
-        ctx.lineTo(x + notchX * cos, y + notchX * sin);
-        ctx.lineTo(x + tailX * cos - arrowHalfW * sin, y + tailX * sin + arrowHalfW * cos);
-        ctx.closePath();
-      }
-
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-}
-
 interface HeatPoint {
   lat: number;
   lon: number;
@@ -576,7 +275,6 @@ export class MapaOrigemDestinoController {
   private statesLayer: L.GeoJSON | null = null;
   private ibgeMuniLayer: L.GeoJSON | null = null;
   private arcsLayer: L.LayerGroup = L.layerGroup();
-  private flowArrowsLayer: AnimatedFlowArrowsLayer = new AnimatedFlowArrowsLayer([]);
   private osrmRoadLayer: L.LayerGroup = L.layerGroup();
   private markersLayer: L.LayerGroup = L.layerGroup();
   private heatmapLayer: SimpleCanvasHeatmapLayer = new SimpleCanvasHeatmapLayer([]);
@@ -609,7 +307,6 @@ export class MapaOrigemDestinoController {
     this.setBaseTileLayer('osm');
     this.renderBrazilStatesGeoJSON();
     this.arcsLayer.addTo(this.map);
-    this.flowArrowsLayer.addTo(this.map);
     this.osrmRoadLayer.addTo(this.map);
     this.markersLayer.addTo(this.map);
 
@@ -634,7 +331,6 @@ export class MapaOrigemDestinoController {
     if (this.map) {
       setTimeout(() => {
         this.map?.invalidateSize();
-        this.flowArrowsLayer.refreshProjection();
         this.heatmapLayer.redraw();
       }, 120);
     }
@@ -999,7 +695,6 @@ export class MapaOrigemDestinoController {
     }, 1);
 
     const drawRoutes = this.displayMode === 'routes' || this.displayMode === 'both';
-    const animatedFlowRoutes: FlowArrowRoute[] = [];
 
     routes.forEach(r => {
       const vol = this.currentMod === 'ALL' ? r.prod + r.proc : r.mods[this.currentMod] || 0;
@@ -1024,14 +719,14 @@ export class MapaOrigemDestinoController {
 
       if (!drawRoutes) return;
 
-      const latlngs = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d, 26);
-      const weight = Math.max(1.8, Math.min(5.5, 1.8 + (vol / maxVol) * 3.7));
+      const latlngs = getCurvedLatLngs(r.lat_o, r.lon_o, r.lat_d, r.lon_d);
+      const weight = Math.max(1.8, Math.min(6.0, 1.8 + (vol / maxVol) * 4.2));
       const color = getRouteColor(r.dist_km);
 
       const polyline = L.polyline(latlngs, {
         color,
-        weight: Math.max(1.5, weight * 0.65),
-        opacity: 0.28,
+        weight,
+        opacity: 0.78,
         className: 'od-flow-arc'
       });
 
@@ -1043,18 +738,15 @@ export class MapaOrigemDestinoController {
         { sticky: true }
       );
 
-      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 1.5, opacity: 0.85 }));
-      polyline.on('mouseout', () => polyline.setStyle({ weight: Math.max(1.5, weight * 0.65), opacity: 0.28 }));
+      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 2, opacity: 1.0 }));
+      polyline.on('mouseout', () => polyline.setStyle({ weight, opacity: 0.78 }));
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
         void this.renderRouteDetailCardWithOSRM(r);
       });
 
       this.arcsLayer.addLayer(polyline);
-      animatedFlowRoutes.push({ pts: latlngs, color, weight });
     });
-
-    this.flowArrowsLayer.setRoutes(drawRoutes ? animatedFlowRoutes : []);
 
     if (drawRoutes) {
       activeOrigins.forEach(orig => {
