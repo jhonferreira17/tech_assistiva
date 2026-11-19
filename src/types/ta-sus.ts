@@ -512,6 +512,14 @@ export interface BaseDadosObservatorioTASUS {
   top_arcos_od_intermunicipais?: ArcoODIntermunicipal[];
 }
 
+export type EquipChartMetricKey =
+  | 'equipamentos'
+  | 'atos'
+  | 'orcamento'
+  | 'taxa_prod'
+  | 'taxa_atos'
+  | 'ri';
+
 export interface FiltroGlobalState {
   ano: 'ALL' | '2022' | '2023' | '2024';
   macro: 'ALL' | MacrorregiaoBrasil;
@@ -520,7 +528,7 @@ export interface FiltroGlobalState {
   municipioNome: string;
   modalidades: ModalidadeISO9999[];
   equipChartGroup: 'categoria' | 'ano' | 'regiao';
-  equipChartMetric: 'equipamentos' | 'atos' | 'orcamento' | 'ambos' | 'taxa_prod' | 'taxa_atos' | 'ri';
+  equipChartMetrics: EquipChartMetricKey[];
   sigtapSearch: string;
   sigtapTipo: 'ALL' | 'Produto' | 'Procedimento' | 'ZERO';
   poloMunSearch: string;

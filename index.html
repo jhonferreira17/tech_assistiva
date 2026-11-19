@@ -263,17 +263,41 @@
                   <p class="card-subtitle" id="equipChartSubtitle">Distribuição de equipamentos físicos aprovados no SUS • Clique para filtrar</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                  <div class="filter-item">
-                    <label for="selectEquipChartMetric">Indicador</label>
-                    <select id="selectEquipChartMetric" class="filter-select">
-                      <option value="equipamentos" selected>Produtos (un.)</option>
-                      <option value="atos">Atos Clínicos</option>
-                      <option value="orcamento">Valor Total (R$)</option>
-                      <option value="ambos">Produtos + Valor Total</option>
-                      <option value="taxa_prod">Taxa Prod (/ 1.000 PcD)</option>
-                      <option value="taxa_atos">Taxa Atos (/ 1.000 PcD)</option>
-                      <option value="ri">RI — Razão de Integralidade</option>
-                    </select>
+                  <div class="filter-item" id="equipMetricWrap">
+                    <label for="btnEquipMetricToggle">Indicador</label>
+                    <div class="mod-select-box">
+                      <button type="button" id="btnEquipMetricToggle" class="filter-select mod-multi-btn"
+                        aria-haspopup="listbox" aria-expanded="false" style="min-width:210px;">
+                        <span id="equipMetricLabel">Produtos (un.)</span>
+                        <span class="mod-multi-caret">▾</span>
+                      </button>
+                      <div id="equipMetricDropdown" class="mod-multi-dropdown" role="listbox" aria-multiselectable="true">
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="equipamentos" checked />
+                          <span>Produtos (un.)</span>
+                        </label>
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="atos" />
+                          <span>Atos Clínicos</span>
+                        </label>
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="orcamento" />
+                          <span>Valor Total (R$)</span>
+                        </label>
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="taxa_prod" />
+                          <span>Taxa Prod (/ 1.000 PcD)</span>
+                        </label>
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="taxa_atos" />
+                          <span>Taxa Atos (/ 1.000 PcD)</span>
+                        </label>
+                        <label class="mod-check-item">
+                          <input type="checkbox" class="chk-equip-metric" value="ri" />
+                          <span>RI — Razão de Integralidade</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                   <div class="filter-item">
                     <label for="selectEquipChartGroup">Agrupar por</label>
