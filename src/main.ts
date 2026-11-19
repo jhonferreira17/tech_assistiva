@@ -1576,12 +1576,17 @@ function renderCharts(forceStatic = false): void {
     metricMode === 'ambos'
       ? isVerticalEquip
         ? {
-            x: { grid: { display: false } },
+            x: {
+              type: 'category',
+              grid: { display: false },
+              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+            },
             y: {
               type: 'linear',
               position: 'left',
               grid: { color: gridColor },
-              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } }
+              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
+              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
             },
             y1: {
               type: 'linear',
@@ -1596,7 +1601,8 @@ function renderCharts(forceStatic = false): void {
               type: 'linear',
               position: 'bottom',
               grid: { color: gridColor },
-              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } }
+              title: { display: true, text: 'Produtos (un.)', font: { size: 11 } },
+              ticks: { callback: (v: any) => fmtInt.format(Number(v)) }
             },
             x1: {
               type: 'linear',
@@ -1605,22 +1611,49 @@ function renderCharts(forceStatic = false): void {
               title: { display: true, text: 'Valor Total (R$)', font: { size: 11 } },
               ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
             },
-            y: { grid: { display: false } }
+            y: {
+              type: 'category',
+              grid: { display: false },
+              ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
+            }
           }
-      : {
+      : isVerticalEquip
+      ? {
           x: {
-            grid: { color: isVerticalEquip ? 'transparent' : gridColor },
-            ticks:
-              !isVerticalEquip && metricMode === 'orcamento'
-                ? { callback: (v: any) => formatCompactBRL(Number(v)) }
-                : undefined
+            type: 'category',
+            grid: { display: false },
+            ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
           },
           y: {
-            grid: { color: isVerticalEquip ? gridColor : 'transparent' },
-            ticks:
-              isVerticalEquip && metricMode === 'orcamento'
-                ? { callback: (v: any) => formatCompactBRL(Number(v)) }
-                : undefined
+            type: 'linear',
+            grid: { color: gridColor },
+            ticks: {
+              callback: (v: any) =>
+                metricMode === 'orcamento'
+                  ? formatCompactBRL(Number(v))
+                  : metricMode === 'ri'
+                  ? fmtDec2.format(Number(v))
+                  : fmtInt.format(Number(v))
+            }
+          }
+        }
+      : {
+          x: {
+            type: 'linear',
+            grid: { color: gridColor },
+            ticks: {
+              callback: (v: any) =>
+                metricMode === 'orcamento'
+                  ? formatCompactBRL(Number(v))
+                  : metricMode === 'ri'
+                  ? fmtDec2.format(Number(v))
+                  : fmtInt.format(Number(v))
+            }
+          },
+          y: {
+            type: 'category',
+            grid: { display: false },
+            ticks: { autoSkip: false, font: { size: 12, weight: 600 } }
           }
         };
 
