@@ -115,6 +115,9 @@ export default defineConfig({
   plugins: [duckdbParquetApiPlugin()],
   server: {
     port: 3000,
-    host: true
+    host: true,
+    watch: {
+      ignored: ['**/documentos_base/**', '**/dados_zenodo/**']
+    }
   }
 });
