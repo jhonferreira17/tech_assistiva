@@ -267,7 +267,8 @@ body {
   color: var(--text-muted);
 }
 
-.filter-select, .filter-input {
+.filter-select,
+.filter-input {
   background: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-light);
@@ -279,7 +280,8 @@ body {
   transition: border-color 0.15s ease;
 }
 
-.filter-select:focus, .filter-input:focus {
+.filter-select:focus,
+.filter-input:focus {
   border-color: var(--border-focus);
 }
 
@@ -459,8 +461,15 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Clean Cards & Grids */
@@ -479,7 +488,9 @@ body {
 }
 
 @media (max-width: 1100px) {
-  .grid-2, .grid-3 {
+
+  .grid-2,
+  .grid-3 {
     grid-template-columns: 1fr;
   }
 }
@@ -632,14 +643,45 @@ body {
   font-weight: 600;
 }
 
-.tag-prod { background: var(--primary-soft); color: var(--primary); }
-.tag-proc { background: var(--teal-soft); color: var(--teal); }
-.tag-zero { background: var(--amber-soft); color: var(--amber); }
-.tag-crit { background: var(--rose-soft); color: var(--rose); }
-.tag-ok { background: var(--emerald-soft); color: var(--emerald); }
-.tag-filantropica { background: var(--emerald-soft); color: var(--emerald); }
-.tag-publica { background: var(--primary-soft); color: var(--primary); }
-.tag-privada { background: var(--rose-soft); color: var(--rose); }
+.tag-prod {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.tag-proc {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.tag-zero {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.tag-crit {
+  background: var(--rose-soft);
+  color: var(--rose);
+}
+
+.tag-ok {
+  background: var(--emerald-soft);
+  color: var(--emerald);
+}
+
+.tag-filantropica {
+  background: var(--emerald-soft);
+  color: var(--emerald);
+}
+
+.tag-publica {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.tag-privada {
+  background: var(--rose-soft);
+  color: var(--rose);
+}
 
 /* Clean Funnel & Domain Cards */
 .clean-list {
@@ -792,4 +834,3 @@ body {
 .od-flow-arc {
   stroke-linecap: round;
 }
-

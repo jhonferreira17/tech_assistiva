@@ -52,6 +52,18 @@ const state: FiltroGlobalState = {
 
 const charts: Record<string, Chart> = {};
 const municipioLookupByLabel = new Map<string, { cod: string; nome: string; uf: string }>();
+let lastDatalistUf: string | null = null;
+let staticTablesRendered = false;
+let staticChartsRendered = false;
+let sigtapExcluidosRendered = false;
+
+function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: number): T {
+  let timer: number | null = null;
+  return ((...args: any[]) => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(() => fn(...args), delayMs);
+  }) as T;
+}
 
 const odMapController = new MapaOrigemDestinoController((selectedUf: string) => {
   state.uf = selectedUf;
@@ -84,6 +96,8 @@ function populateMunicipioDatalist(): void {
   const datalist = getEl<HTMLDataListElement>('municipiosDatalist');
   const munDict = window.MAPA_OD_SUS?.municipios_ibge;
   if (!datalist || !munDict) return;
+  if (lastDatalistUf === state.uf) return;
+  lastDatalistUf = state.uf;
 
   municipioLookupByLabel.clear();
   const entries = Object.entries(munDict)
@@ -313,11 +327,12 @@ function renderSigtapTable(): void {
     )
     .join('');
 
-  const tbExc = document.querySelector('#tableSigtapExcluidos tbody');
-  if (tbExc && DB.sigtap_excluidos_59) {
-    tbExc.innerHTML = DB.sigtap_excluidos_59
-      .map(
-        (r, i) => `
+  if (!sigtapExcluidosRendered) {
+    const tbExc = document.querySelector('#tableSigtapExcluidos tbody');
+    if (tbExc && DB.sigtap_excluidos_59) {
+      tbExc.innerHTML = DB.sigtap_excluidos_59
+        .map(
+          (r, i) => `
       <tr>
         <td class="num-col">${i + 1}</td>
         <td><code><strong>${r.codigo_sigtap}</strong></code></td>
@@ -326,8 +341,10 @@ function renderSigtapTable(): void {
         <td><small>${r.motivo_exclusao}</small></td>
       </tr>
     `
-      )
-      .join('');
+        )
+        .join('');
+      sigtapExcluidosRendered = true;
+    }
   }
 }
 
@@ -377,6 +394,7 @@ function renderPolosMunicipaisRDS(): void {
 }
 
 function renderStaticAndDynamicTables(): void {
+  if (!staticTablesRendered) {
   // Table 1.2
   const tb12 = document.querySelector('#tableReconciliacao12 tbody');
   if (tb12) {
@@ -465,8 +483,9 @@ function renderStaticAndDynamicTables(): void {
       )
       .join('');
   }
+  } // fim bloco estático inicial (1.2, 1.3, 1.1, 2.1)
 
-  // Table 2.2 CBO
+  // Table 2.2 CBO (dinâmica por modalidade)
   const tb22 = document.querySelector('#tableCBO22 tbody');
   if (tb22) {
     tb22.innerHTML = DB.cbo_tabela_2_2
@@ -506,6 +525,7 @@ function renderStaticAndDynamicTables(): void {
       .join('');
   }
 
+  if (!staticTablesRendered) {
   // Table 3.1 Economy
   const tb31 = document.querySelector('#tableEconomia31 tbody');
   if (tb31) {
@@ -550,6 +570,7 @@ function renderStaticAndDynamicTables(): void {
       )
       .join('');
   }
+  } // fim bloco estático 3.1 / 3.3
 
   // Table Top CNES (with real Municipality and Health Region names from Zenodo RDS!)
   const tbCNES = document.querySelector('#tableTopCNES tbody');
@@ -582,6 +603,7 @@ function renderStaticAndDynamicTables(): void {
       .join('');
   }
 
+  if (!staticTablesRendered) {
   // Table 4.1 Spatial Justice
   const tb41 = document.querySelector('#tableJustica41 tbody');
   if (tb41) {
@@ -648,6 +670,7 @@ function renderStaticAndDynamicTables(): void {
       })
       .join('');
   }
+  } // fim bloco estático 4.1 / 4.2 / 4.3
 
   // Table Resumo 27 UFs + Interactive UF Tile Map (enriched with Censo 2022 PwD denominator!)
   const targetYear = state.ano === 'ALL' ? 'Triênio' : String(state.ano);
@@ -707,20 +730,9 @@ function renderStaticAndDynamicTables(): void {
       .join('');
   }
 
-  document.querySelectorAll('[data-uf-click]').forEach(el => {
-    el.addEventListener('click', () => {
-      const clickedUf = el.getAttribute('data-uf-click') || 'ALL';
-      state.uf = state.uf === clickedUf ? 'ALL' : clickedUf;
-      const selUF = getEl<HTMLSelectElement>('filterUF');
-      if (selUF) selUF.value = state.uf;
-      odMapController.selectState(state.uf, true);
-      document.getElementById('odLeafletMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      refreshAll();
-    });
-  });
-
   renderPolosMunicipaisRDS();
 
+  if (!staticTablesRendered) {
   // Table 5.1 Hurdle NB
   const tb51 = document.querySelector('#tableHurdle51 tbody');
   if (tb51) {
@@ -784,6 +796,7 @@ function renderStaticAndDynamicTables(): void {
       )
       .join('');
   }
+  } // fim bloco estático 5.1 / 5.2 / 5.3
 
   // Table Top Intermunicipal Arcs enriched with real names and SIRGAS 2000 distances!
   const tbArcos = document.querySelector('#tableArcosOD tbody');
@@ -817,6 +830,7 @@ function renderStaticAndDynamicTables(): void {
 
   renderSigtapTable();
 
+  if (!staticTablesRendered) {
   // Table 35 Zenodo Files Inventory
   const tbZen = document.querySelector('#tableArquivosZenodo35 tbody');
   if (tbZen && DB.arquivos_zenodo_35) {
@@ -873,15 +887,18 @@ function renderStaticAndDynamicTables(): void {
       )
       .join('');
   }
+  staticTablesRendered = true;
+  } // fim bloco estático Zenodo / RECORD / GATHER
 }
 
-function renderCharts(): void {
+function renderCharts(forceStatic = false): void {
   const isDark = document.body.classList.contains('dark-theme');
   const textColor = isDark ? '#cbd5e1' : '#475569';
   const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
 
   Chart.defaults.color = textColor;
   Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.animation = { duration: 180 };
 
   function createOrUpdateChart(id: string, config: any): void {
     if (charts[id]) {
@@ -1009,6 +1026,7 @@ function renderCharts(): void {
     }
   });
 
+  if (!staticChartsRendered || forceStatic) {
   // 3. Chart CBO por Modalidade
   const cboCats = ['Fisioterapeuta', 'Fonoaudiólogo', 'Médico Especialista', 'Terapeuta Ocupacional'];
   const cboColors: Record<string, string> = {
@@ -1080,6 +1098,7 @@ function renderCharts(): void {
       }
     }
   });
+  } // fim gráficos estáticos 3 e 4
 
   // 5. Chart Faixa Etária
   const faixas = [
@@ -1149,6 +1168,7 @@ function renderCharts(): void {
     }
   });
 
+  if (!staticChartsRendered || forceStatic) {
   // 7. Chart Esfera Jurídica
   createOrUpdateChart('chartEsferaJuridica', {
     type: 'bar',
@@ -1375,6 +1395,9 @@ function renderCharts(): void {
       }
     }
   });
+  staticChartsRendered = true;
+  } // fim gráficos estáticos 7 a 13
+
   // 14. Chart 10 Melhores e 10 Piores por Localidade
   const targetYearTop10 = state.ano === 'ALL' ? 'Triênio' : String(state.ano);
   let rankedItems: Array<{ label: string; value: number }> = [];
@@ -1501,6 +1524,9 @@ function bindEvents(): void {
         if (target) target.classList.add('active');
         if (targetId === 'tab-territorio') {
           odMapController.initMap('odLeafletMap');
+          if (state.uf !== 'ALL') {
+            odMapController.selectState(state.uf, true);
+          }
           odMapController.invalidateSize();
         }
       }
@@ -1630,10 +1656,30 @@ function bindEvents(): void {
     refreshAll();
   });
 
-  // Search Filters
+  // Event Delegation para cliques em cartões/linhas de UF (evita re-anexar listeners a cada filtro)
+  document.addEventListener('click', e => {
+    const target = (e.target as HTMLElement | null)?.closest('[data-uf-click]') as HTMLElement | null;
+    if (!target) return;
+    const clickedUf = target.getAttribute('data-uf-click') || 'ALL';
+    state.uf = state.uf === clickedUf ? 'ALL' : clickedUf;
+    state.municipioCod = '';
+    state.municipioNome = '';
+    const selUF = getEl<HTMLSelectElement>('filterUF');
+    if (selUF) selUF.value = state.uf;
+    const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+    if (inputMun) inputMun.value = '';
+    populateMunicipioDatalist();
+    odMapController.initMap('odLeafletMap');
+    odMapController.selectState(state.uf, true);
+    document.getElementById('odLeafletMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    refreshAll();
+  });
+
+  // Search Filters (com debounce de 120ms para digitação fluida)
+  const debouncedSigtap = debounce(() => renderSigtapTable(), 120);
   getEl<HTMLInputElement>('inputSearchSigtap')?.addEventListener('input', e => {
     state.sigtapSearch = (e.target as HTMLInputElement).value;
-    renderSigtapTable();
+    debouncedSigtap();
   });
 
   getEl<HTMLSelectElement>('selectTipoSigtap')?.addEventListener('change', e => {
@@ -1641,9 +1687,10 @@ function bindEvents(): void {
     renderSigtapTable();
   });
 
+  const debouncedPoloMun = debounce(() => renderPolosMunicipaisRDS(), 120);
   getEl<HTMLInputElement>('inputSearchPoloMun')?.addEventListener('input', e => {
     state.poloMunSearch = (e.target as HTMLInputElement).value;
-    renderPolosMunicipaisRDS();
+    debouncedPoloMun();
   });
 
   // Quick Open Map button in Topbar
@@ -1657,7 +1704,7 @@ function bindEvents(): void {
   // Theme Toggle (Default is Clean Light Mode, toggles Dark Mode)
   getEl('btnToggleTheme')?.addEventListener('click', () => {
     document.body.classList.toggle('dark-theme');
-    renderCharts();
+    renderCharts(true);
   });
 
   // Copy R Script
@@ -1759,8 +1806,7 @@ function bindEvents(): void {
   });
 }
 
-// Initialize TypeScript App
+// Initialize TypeScript App (Mapa inicializado sob demanda ao abrir a aba para boot instantâneo)
 initSelectors();
 bindEvents();
-odMapController.initMap('odLeafletMap');
 refreshAll();
