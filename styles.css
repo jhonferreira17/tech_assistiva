@@ -545,7 +545,8 @@ body {
   font-size: 13px;
 }
 
-.muni-selected-bar.visible {
+.muni-selected-bar.visible,
+.muni-selected-bar.active {
   display: flex;
 }
 

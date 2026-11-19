@@ -950,12 +950,12 @@ function renderCharts(forceStatic = false): void {
 
   Chart.defaults.color = textColor;
   Chart.defaults.font.family = "'Inter', sans-serif";
-  Chart.defaults.animation = { duration: 180 };
+  if (Chart.defaults.animation && typeof Chart.defaults.animation === 'object') {
+    Chart.defaults.animation.duration = 200;
+  }
   Chart.defaults.plugins.tooltip.backgroundColor = tooltipBg;
   Chart.defaults.plugins.tooltip.padding = 10;
   Chart.defaults.plugins.tooltip.cornerRadius = 8;
-  Chart.defaults.plugins.tooltip.titleFont = { weight: 'bold', size: 12 };
-  Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
 
   const pointerHover = (event: any, elements: any[]) => {
     const target = event?.native?.target as HTMLElement | undefined;
