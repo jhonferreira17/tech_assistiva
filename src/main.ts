@@ -1097,7 +1097,7 @@ function renderCharts(forceStatic = false): void {
       scales: {
         x: { grid: { display: false } },
         y: { type: 'linear', position: 'left', grid: { color: gridColor } },
-        y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 0.25 }
+        y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, min: 0, suggestedMax: 0.25 }
       }
     }
   });
@@ -1186,7 +1186,7 @@ function renderCharts(forceStatic = false): void {
       scales: {
         x: { grid: { display: false } },
         y: { type: 'linear', position: 'left', grid: { color: gridColor } },
-        y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 0.4 }
+        y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, min: 0, suggestedMax: 0.4 }
       }
     }
   });
