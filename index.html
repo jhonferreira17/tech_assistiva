@@ -70,7 +70,14 @@
         </nav>
       </div>
 
-      <div class="sidebar-footer">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="nav-tab" data-tab="tab-desenvolvedores" role="tab" aria-selected="false"
+          style="border:1px solid var(--border-light);background:var(--bg-card);">
+          <span class="tab-step">💻</span>
+          <span>Desenvolvedores</span>
+        </button>
+
+        <div class="sidebar-footer">
         <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
         <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
             rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
@@ -80,6 +87,7 @@
         <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
           <span>🌓 Tema Claro / Escuro</span>
         </button>
+      </div>
       </div>
     </aside>
 
@@ -1603,6 +1611,152 @@ ORDER BY ano, tipo_registro;</textarea>
                   <tbody></tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 8 — DESENVOLVEDORES & EQUIPE DO PROJETO
+             ================================================================= -->
+        <section id="tab-desenvolvedores" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Desenvolvedores &amp; Equipe do Projeto</h2>
+              <p>Responsáveis pelo desenvolvimento da plataforma ORBITA, coordenação científica, cooperação institucional e tecnologias empregadas.</p>
+            </div>
+            <a href="https://github.com/jhonferreira17/tech_assistiva" target="_blank" rel="noopener noreferrer"
+              class="btn btn-primary">
+              <span>↗ Repositório no GitHub</span>
+            </a>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Engenharia &amp; Desenvolvimento</h3>
+                  <p class="card-subtitle">Arquitetura web, visualização de dados, geoprocessamento e deploy</p>
+                </div>
+                <span class="tag tag-prod">ORBITA Web</span>
+              </div>
+              <div class="clean-list">
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Jhon Ferreira</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Desenvolvimento Full-Stack • Interface, Gráficos Interativos, Mapa OpenStreetMap &amp; Hidrovia Amazônica
+                    </div>
+                  </div>
+                  <a href="https://github.com/jhonferreira17" target="_blank" rel="noopener noreferrer" class="btn"
+                    style="padding:5px 10px;font-size:12px;">
+                    @jhonferreira17 ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Fomento, Cooperação &amp; Licença</h3>
+                  <p class="card-subtitle">Apoio institucional e governança aberta de dados em saúde</p>
+                </div>
+                <span class="tag tag-ok">CC-BY 4.0</span>
+              </div>
+              <div class="clean-list">
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Cooperação Acadêmica</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Acordo de Cooperação Acadêmica DINTER COPPE/UFRJ – UFAM
+                    </div>
+                  </div>
+                </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Fomento Científico</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      PPSUS • DECIT/SECTICS/MS • CNPq • FAPERJ • FAPEAM
+                    </div>
+                  </div>
+                </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Base Oficial &amp; Padrões</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Zenodo DOI <code>10.5281/zenodo.24225551</code> • RECORD • GATHER • CIF/OMS • ISO 9999
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Coordenação &amp; Equipe Científica (PPSUS / UFRJ–UFAM)</h3>
+                <p class="card-subtitle">Pesquisadores responsáveis pela curadoria da base censitária SIA/SUS (2022–2024)</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="sci-table">
+                <thead>
+                  <tr>
+                    <th>Pesquisador(a)</th>
+                    <th>Instituição</th>
+                    <th>Papel no Projeto</th>
+                    <th>ORCID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Profa. Dra. Carolina Maria do Carmo Alonso</strong></td>
+                    <td>UFRJ — Faculdade de Medicina / COPPE</td>
+                    <td><span class="tag tag-prod">Coordenadora Geral (PI)</span></td>
+                    <td><a href="https://orcid.org/0000-0003-4928-4465" target="_blank" rel="noopener noreferrer"
+                        style="color:var(--primary);text-decoration:none;font-family:var(--font-mono);font-size:12px;">0000-0003-4928-4465 ↗</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Prof. Dr. Hidelbrando Ferreira Rodrigues</strong></td>
+                    <td>UFAM — Instituto de Ciências Exatas e Tecnologia (ICET)</td>
+                    <td><span class="tag tag-proc">Vice-Coordenador (Co-PI)</span></td>
+                    <td><a href="https://orcid.org/0000-0003-1266-0957" target="_blank" rel="noopener noreferrer"
+                        style="color:var(--primary);text-decoration:none;font-family:var(--font-mono);font-size:12px;">0000-0003-1266-0957 ↗</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Prof. Dr. Francisco José de Castro Moura Duarte</strong></td>
+                    <td>COPPE/UFRJ — Programa de Engenharia de Produção</td>
+                    <td><span class="tag tag-ok">Pesquisador Integrante</span></td>
+                    <td style="color:var(--text-muted);">—</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Profa. Dra. Lilian de Fátima Zanoni Nogueira</strong></td>
+                    <td>Faculdade de Medicina / UFRJ — Terapia Ocupacional</td>
+                    <td><span class="tag tag-ok">Pesquisadora Integrante</span></td>
+                    <td style="color:var(--text-muted);">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Stack Tecnológica &amp; Fontes Abertas</h3>
+                <p class="card-subtitle">Arquitetura 100% baseada em tecnologias abertas e gratuitas</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag tag-prod">TypeScript 5</span>
+              <span class="tag tag-prod">Vite 6</span>
+              <span class="tag tag-proc">Chart.js 4</span>
+              <span class="tag tag-ok">Leaflet + OpenStreetMap</span>
+              <span class="tag tag-ok">Malhas &amp; Sedes IBGE</span>
+              <span class="tag tag-ok">Rotas OSRM + Hidrovia Amazônica</span>
+              <span class="tag tag-zero">DuckDB + Apache Parquet (972 partições)</span>
+              <span class="tag tag-prod">Node.js Serverless (Vercel)</span>
             </div>
           </div>
         </section>
