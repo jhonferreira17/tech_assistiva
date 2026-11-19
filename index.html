@@ -266,16 +266,19 @@
                   <div class="filter-item">
                     <label for="selectEquipChartMetric">Indicador</label>
                     <select id="selectEquipChartMetric" class="filter-select">
-                      <option value="equipamentos" selected>Equipamentos (Qtd.)</option>
-                      <option value="orcamento">Orçamento Aprovado (R$)</option>
-                      <option value="ambos">Equipamentos + Orçamento</option>
-                      <option value="ri">Índice de Acompanhamento (Razão de Integralidade)</option>
+                      <option value="equipamentos" selected>Produtos (un.)</option>
+                      <option value="atos">Atos Clínicos</option>
+                      <option value="orcamento">Valor Total (R$)</option>
+                      <option value="ambos">Produtos + Valor Total</option>
+                      <option value="taxa_prod">Taxa Prod (/ 1.000 PcD)</option>
+                      <option value="taxa_atos">Taxa Atos (/ 1.000 PcD)</option>
+                      <option value="ri">RI — Razão de Integralidade</option>
                     </select>
                   </div>
                   <div class="filter-item">
                     <label for="selectEquipChartGroup">Agrupar por</label>
                     <select id="selectEquipChartGroup" class="filter-select">
-                      <option value="categoria" selected>Linha de Cuidado (Categoria)</option>
+                      <option value="categoria" selected>Categoria de Equipamento</option>
                       <option value="ano">Ano (2022–2024)</option>
                       <option value="regiao">Região do Brasil</option>
                     </select>
@@ -284,6 +287,22 @@
               </div>
               <div class="chart-box" style="height:340px;">
                 <canvas id="chartEquipamentosEntregues"></canvas>
+              </div>
+              <div class="table-responsive" style="margin-top:18px;border-top:1px solid var(--border-light);padding-top:14px;">
+                <table class="sci-table" id="tableEquipResumo">
+                  <thead>
+                    <tr>
+                      <th id="thEquipGroupLabel">Categoria de Equipamento</th>
+                      <th class="num-col">Produtos (un.)</th>
+                      <th class="num-col">Atos Clínicos</th>
+                      <th class="num-col">Valor Total</th>
+                      <th class="num-col">Taxa Prod (/1k PcD)</th>
+                      <th class="num-col">Taxa Atos (/1k PcD)</th>
+                      <th class="num-col">RI</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
               </div>
             </div>
 

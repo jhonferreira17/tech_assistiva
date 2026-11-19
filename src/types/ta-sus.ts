@@ -520,7 +520,7 @@ export interface FiltroGlobalState {
   municipioNome: string;
   modalidades: ModalidadeISO9999[];
   equipChartGroup: 'categoria' | 'ano' | 'regiao';
-  equipChartMetric: 'equipamentos' | 'orcamento' | 'ambos' | 'ri';
+  equipChartMetric: 'equipamentos' | 'atos' | 'orcamento' | 'ambos' | 'taxa_prod' | 'taxa_atos' | 'ri';
   sigtapSearch: string;
   sigtapTipo: 'ALL' | 'Produto' | 'Procedimento' | 'ZERO';
   poloMunSearch: string;
