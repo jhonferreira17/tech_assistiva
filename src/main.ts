@@ -1919,14 +1919,43 @@ function bindEvents(): void {
     }
   };
 
-  getEl<HTMLInputElement>('filterMunicipio')?.addEventListener('change', e => {
-    handleMunicipioSelection((e.target as HTMLInputElement).value);
+  let tempClearedMunLabel = '';
+  const inputMunEl = getEl<HTMLInputElement>('filterMunicipio');
+
+  inputMunEl?.addEventListener('focus', () => {
+    if (state.municipioCod && inputMunEl.value.trim()) {
+      tempClearedMunLabel = inputMunEl.value;
+      inputMunEl.value = '';
+    }
   });
 
-  getEl<HTMLInputElement>('filterMunicipio')?.addEventListener('input', e => {
+  inputMunEl?.addEventListener('blur', () => {
+    if (!inputMunEl.value.trim() && tempClearedMunLabel && state.municipioCod) {
+      inputMunEl.value = tempClearedMunLabel;
+    }
+    tempClearedMunLabel = '';
+  });
+
+  inputMunEl?.addEventListener('change', e => {
     const val = (e.target as HTMLInputElement).value;
-    if (!val.trim() || municipioLookupByLabel.has(val.trim().toLowerCase())) {
+    tempClearedMunLabel = '';
+    handleMunicipioSelection(val);
+  });
+
+  inputMunEl?.addEventListener('input', e => {
+    const val = (e.target as HTMLInputElement).value;
+    if (val.trim() && municipioLookupByLabel.has(val.trim().toLowerCase())) {
+      tempClearedMunLabel = '';
       handleMunicipioSelection(val);
+    } else if (!val.trim() && !tempClearedMunLabel) {
+      handleMunicipioSelection('');
+    }
+  });
+
+  inputMunEl?.addEventListener('search', () => {
+    if (!inputMunEl.value.trim()) {
+      tempClearedMunLabel = '';
+      handleMunicipioSelection('');
     }
   });
 
