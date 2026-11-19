@@ -55,6 +55,7 @@ const state: FiltroGlobalState = {
   municipioNome: '',
   modalidades: [],
   equipChartGroup: 'categoria',
+  equipChartMetric: 'equipamentos',
   sigtapSearch: '',
   sigtapTipo: 'ALL',
   poloMunSearch: '',
@@ -1318,85 +1319,227 @@ function renderCharts(forceStatic = false): void {
     }
   });
 
-  // 2B. Novo Gráfico Dedicado: Equipamentos Entregues (Produtos Físicos)
+  // 2B. Gráfico Dedicado: Equipamentos Entregues / Orçamento / Ambos / Razão de Integralidade (RI)
   const prodOnlyCubo = filteredCubo.filter(r => r.tipo_registro === 'Produto');
+  const procOnlyCubo = filteredCubo.filter(r => r.tipo_registro === 'Procedimento');
   const totalEquipFiltrado = prodOnlyCubo.reduce((acc, r) => acc + r.qtd_aprovada, 0);
+  const totalOrcFiltrado = prodOnlyCubo.reduce((acc, r) => acc + r.val_aprovado, 0);
+  const totalProcFiltrado = procOnlyCubo.reduce((acc, r) => acc + r.qtd_aprovada, 0);
+  const riGlobalFiltrado = totalEquipFiltrado > 0 ? totalProcFiltrado / totalEquipFiltrado : 0;
+
+  const equipTitleEl = getEl('equipChartTitle');
   const equipSubEl = getEl('equipChartSubtitle');
 
-  let equipLabels: string[] = [];
-  let equipValues: number[] = [];
-  let equipValsBRL: number[] = [];
-  let equipColors: string[] = [];
-  let equipKeys: string[] = [];
+  interface EquipGroupStat {
+    key: string;
+    label: string;
+    qtd: number;
+    proc: number;
+    val: number;
+    ri: number;
+    color: string;
+  }
 
+  let statsList: EquipGroupStat[] = [];
   if (state.equipChartGroup === 'ano') {
     const anosList = ['2022', '2023', '2024'];
-    equipLabels = anosList.map(a => `Ano ${a}`);
-    equipKeys = anosList;
-    equipValues = anosList.map(a =>
-      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0)
-    );
-    equipValsBRL = anosList.map(a =>
-      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.val_aprovado, 0)
-    );
-    equipColors = ['#0284c7', '#0d9488', '#059669'];
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por ano • Clique em uma barra para filtrar o ano`;
-    }
+    statsList = anosList.map((a, idx) => {
+      const qtd = prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const proc = procOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const val = prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.val_aprovado, 0);
+      return {
+        key: a,
+        label: `Ano ${a}`,
+        qtd,
+        proc,
+        val,
+        ri: qtd > 0 ? proc / qtd : 0,
+        color: ['#0284c7', '#0d9488', '#059669'][idx]
+      };
+    });
   } else if (state.equipChartGroup === 'regiao') {
     const macroList: MacrorregiaoBrasil[] = ['Sudeste', 'Nordeste', 'Sul', 'Centro-Oeste', 'Norte'];
-    const macroStats = macroList
-      .map((mc, i) => ({
+    statsList = macroList.map((mc, idx) => {
+      const qtd = prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const proc = procOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0);
+      const val = prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.val_aprovado, 0);
+      return {
         key: mc,
         label: mc,
-        qtd: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0),
-        val: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.val_aprovado, 0),
-        color: ['#0284c7', '#d97706', '#059669', '#4f46e5', '#e11d48'][i]
-      }))
-      .sort((a, b) => b.qtd - a.qtd);
-    equipLabels = macroStats.map(s => s.label);
-    equipKeys = macroStats.map(s => s.key);
-    equipValues = macroStats.map(s => s.qtd);
-    equipValsBRL = macroStats.map(s => s.val);
-    equipColors = macroStats.map(s => s.color);
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por região • Clique em uma barra para filtrar a região`;
-    }
+        qtd,
+        proc,
+        val,
+        ri: qtd > 0 ? proc / qtd : 0,
+        color: ['#0284c7', '#d97706', '#059669', '#4f46e5', '#e11d48'][idx]
+      };
+    });
   } else {
-    const catStats = activeModOrder
-      .map(m => ({
+    statsList = activeModOrder.map(m => {
+      const qtd = modProd[m] || 0;
+      const proc = modProc[m] || 0;
+      const val = modVal[m] || 0;
+      return {
         key: m,
         label: modLabels[m],
-        qtd: modProd[m] || 0,
-        val: modVal[m] || 0,
+        qtd,
+        proc,
+        val,
+        ri: qtd > 0 ? proc / qtd : 0,
         color: modColors[m]
-      }))
-      .sort((a, b) => b.qtd - a.qtd);
-    equipLabels = catStats.map(s => s.label);
-    equipKeys = catStats.map(s => s.key);
-    equipValues = catStats.map(s => s.qtd);
-    equipValsBRL = catStats.map(s => s.val);
-    equipColors = catStats.map(s => s.color);
-    if (equipSubEl) {
-      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos (${activeModOrder.length} categoria${activeModOrder.length > 1 ? 's' : ''}) • Clique em uma barra para alternar`;
+      };
+    });
+  }
+
+  // Ordena pelo indicador ativo (exceto por Ano, que mantém ordem cronológica)
+  if (state.equipChartGroup !== 'ano') {
+    statsList.sort((a, b) => {
+      if (state.equipChartMetric === 'orcamento') return b.val - a.val;
+      if (state.equipChartMetric === 'ri') return b.ri - a.ri;
+      return b.qtd - a.qtd;
+    });
+  }
+
+  const equipLabels = statsList.map(s => s.label);
+  const equipKeys = statsList.map(s => s.key);
+  const equipValues = statsList.map(s => s.qtd);
+  const equipValsBRL = statsList.map(s => s.val);
+  const equipProcVals = statsList.map(s => s.proc);
+  const equipRiVals = statsList.map(s => Number(s.ri.toFixed(4)));
+  const equipColors = statsList.map(s => s.color);
+
+  const metricMode = state.equipChartMetric;
+  const isVerticalEquip = state.equipChartGroup === 'ano';
+
+  if (equipTitleEl) {
+    if (metricMode === 'orcamento') equipTitleEl.textContent = 'Orçamento Aprovado em Equipamentos (R$)';
+    else if (metricMode === 'ambos') equipTitleEl.textContent = 'Equipamentos Entregues vs. Orçamento Aprovado (R$)';
+    else if (metricMode === 'ri') equipTitleEl.textContent = 'Índice de Acompanhamento (Razão de Integralidade — RI)';
+    else equipTitleEl.textContent = 'Equipamentos Entregues';
+  }
+
+  if (equipSubEl) {
+    const scopeStr =
+      state.equipChartGroup === 'ano'
+        ? 'por ano'
+        : state.equipChartGroup === 'regiao'
+        ? 'por região'
+        : `em ${activeModOrder.length} categoria${activeModOrder.length > 1 ? 's' : ''}`;
+    if (metricMode === 'orcamento') {
+      equipSubEl.textContent = `Orçamento total no filtro: ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr}) • Clique em uma barra para filtrar`;
+    } else if (metricMode === 'ambos') {
+      equipSubEl.textContent = `${fmtInt.format(totalEquipFiltrado)} equipamentos e ${formatCompactBRL(totalOrcFiltrado)} (${scopeStr}) • Clique em uma barra para filtrar`;
+    } else if (metricMode === 'ri') {
+      equipSubEl.textContent = `Razão de Integralidade média no filtro: ${fmtDec4.format(riGlobalFiltrado)} (Atos Clínicos / Equipamentos • ${scopeStr})`;
+    } else {
+      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos (${scopeStr}) • Clique em uma barra para filtrar`;
     }
   }
+
+  const equipDatasets: any[] =
+    metricMode === 'ambos'
+      ? [
+          {
+            label: 'Equipamentos (Qtd.)',
+            data: equipValues,
+            backgroundColor: '#0284c7',
+            borderRadius: 4,
+            ...(isVerticalEquip ? { yAxisID: 'y' } : { xAxisID: 'x' })
+          },
+          {
+            label: 'Orçamento Aprovado (R$)',
+            data: equipValsBRL,
+            backgroundColor: '#059669',
+            borderRadius: 4,
+            ...(isVerticalEquip ? { yAxisID: 'y1' } : { xAxisID: 'x1' })
+          }
+        ]
+      : metricMode === 'orcamento'
+      ? [
+          {
+            label: 'Orçamento Aprovado (R$)',
+            data: equipValsBRL,
+            backgroundColor: '#059669',
+            borderRadius: 5
+          }
+        ]
+      : metricMode === 'ri'
+      ? [
+          {
+            label: 'Razão de Integralidade (RI)',
+            data: equipRiVals,
+            backgroundColor: '#d97706',
+            borderRadius: 5
+          }
+        ]
+      : [
+          {
+            label: 'Equipamentos Entregues',
+            data: equipValues,
+            backgroundColor: equipColors,
+            borderRadius: 5
+          }
+        ];
+
+  const equipScales: any =
+    metricMode === 'ambos'
+      ? isVerticalEquip
+        ? {
+            x: { grid: { display: false } },
+            y: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: gridColor },
+              title: { display: true, text: 'Equipamentos (un.)', font: { size: 11 } }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Orçamento (R$)', font: { size: 11 } },
+              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
+            }
+          }
+        : {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              grid: { color: gridColor },
+              title: { display: true, text: 'Equipamentos (un.)', font: { size: 11 } }
+            },
+            x1: {
+              type: 'linear',
+              position: 'top',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Orçamento (R$)', font: { size: 11 } },
+              ticks: { callback: (v: any) => formatCompactBRL(Number(v)) }
+            },
+            y: { grid: { display: false } }
+          }
+      : {
+          x: {
+            grid: { color: isVerticalEquip ? 'transparent' : gridColor },
+            ticks:
+              !isVerticalEquip && metricMode === 'orcamento'
+                ? { callback: (v: any) => formatCompactBRL(Number(v)) }
+                : undefined
+          },
+          y: {
+            grid: { color: isVerticalEquip ? gridColor : 'transparent' },
+            ticks:
+              isVerticalEquip && metricMode === 'orcamento'
+                ? { callback: (v: any) => formatCompactBRL(Number(v)) }
+                : undefined
+          }
+        };
 
   createOrUpdateChart('chartEquipamentosEntregues', {
     type: 'bar',
     data: {
       labels: equipLabels,
-      datasets: [
-        {
-          label: 'Equipamentos Entregues',
-          data: equipValues,
-          backgroundColor: equipColors,
-          borderRadius: 5
-        }
-      ]
+      datasets: equipDatasets
     },
     options: {
-      indexAxis: state.equipChartGroup === 'ano' ? 'x' : 'y',
+      indexAxis: isVerticalEquip ? 'x' : 'y',
       responsive: true,
       maintainAspectRatio: false,
       onHover: pointerHover,
@@ -1429,60 +1572,90 @@ function renderCharts(forceStatic = false): void {
         scheduleRefreshAll();
       },
       layout: {
-        padding:
-          state.equipChartGroup === 'ano'
-            ? { top: 26, right: 12 }
-            : { top: 6, right: 145 }
+        padding: isVerticalEquip
+          ? { top: 26, right: 12 }
+          : { top: 6, right: metricMode === 'ri' ? 85 : 155 }
       },
       plugins: {
-        legend: { display: false },
+        legend: { display: metricMode === 'ambos' },
         tooltip: {
           callbacks: {
             label: (ctx: any) => {
               const i = ctx.dataIndex;
               const qtd = equipValues[i] || 0;
-              const pct = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
+              const proc = equipProcVals[i] || 0;
+              const pctQtd = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
               const brl = equipValsBRL[i] || 0;
+              const pctBrl = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
+              const ri = equipRiVals[i] || 0;
+
+              if (metricMode === 'orcamento') {
+                return [
+                  ` Orçamento: ${fmtBRL.format(brl)} (${fmtDec1.format(pctBrl)}%)`,
+                  ` Equipamentos: ${fmtInt.format(qtd)} un.`
+                ];
+              }
+              if (metricMode === 'ri') {
+                return [
+                  ` Razão de Integralidade (RI): ${fmtDec4.format(ri)}`,
+                  ` Adaptações: ${fmtInt.format(proc)} | Equipamentos: ${fmtInt.format(qtd)}`
+                ];
+              }
+              if (metricMode === 'ambos') {
+                if (ctx.datasetIndex === 0) {
+                  return ` Equipamentos: ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`;
+                }
+                return ` Orçamento: ${fmtBRL.format(brl)} (${fmtDec1.format(pctBrl)}%)`;
+              }
               return [
-                ` Equipamentos: ${fmtInt.format(qtd)} (${fmtDec1.format(pct)}%)`,
-                ` Investimento: ${formatCompactBRL(brl)}`
+                ` Equipamentos: ${fmtInt.format(qtd)} (${fmtDec1.format(pctQtd)}%)`,
+                ` Orçamento: ${formatCompactBRL(brl)} (${fmtDec1.format(pctBrl)}%)`
               ];
             }
           }
         }
       },
-      scales: {
-        x: { grid: { color: state.equipChartGroup === 'ano' ? 'transparent' : gridColor } },
-        y: { grid: { color: state.equipChartGroup === 'ano' ? gridColor : 'transparent' } }
-      }
+      scales: equipScales
     },
     plugins: [
       {
         id: 'equipAbsPctLabels',
         afterDatasetsDraw(chart: any) {
           const { ctx } = chart;
-          const meta = chart.getDatasetMeta(0);
-          if (!meta || !meta.data) return;
           const isVertical = chart.options.indexAxis === 'x';
 
           ctx.save();
-          ctx.font = "600 11.5px 'Inter', sans-serif";
+          ctx.font = metricMode === 'ambos' ? "600 10.5px 'Inter', sans-serif" : "600 11.5px 'Inter', sans-serif";
           ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
 
-          meta.data.forEach((bar: any, idx: number) => {
-            const val = equipValues[idx] || 0;
-            const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
-            const labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+          chart.data.datasets.forEach((_ds: any, dsIdx: number) => {
+            const meta = chart.getDatasetMeta(dsIdx);
+            if (!meta || meta.hidden || !meta.data) return;
 
-            if (isVertical) {
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'bottom';
-              ctx.fillText(labelText, bar.x, bar.y - 6);
-            } else {
-              ctx.textAlign = 'left';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(labelText, bar.x + 8, bar.y);
-            }
+            meta.data.forEach((bar: any, idx: number) => {
+              let labelText = '';
+              if (metricMode === 'ri') {
+                labelText = fmtDec4.format(equipRiVals[idx] || 0);
+              } else if (metricMode === 'orcamento' || (metricMode === 'ambos' && dsIdx === 1)) {
+                const brl = equipValsBRL[idx] || 0;
+                const pct = totalOrcFiltrado > 0 ? (brl * 100) / totalOrcFiltrado : 0;
+                labelText = `${formatCompactBRL(brl)} (${fmtDec1.format(pct)}%)`;
+              } else {
+                const val = equipValues[idx] || 0;
+                const pct = totalEquipFiltrado > 0 ? (val * 100) / totalEquipFiltrado : 0;
+                labelText = `${fmtInt.format(val)} (${fmtDec1.format(pct)}%)`;
+              }
+
+              if (isVertical) {
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(labelText, bar.x, bar.y - 5);
+              } else {
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labelText, bar.x + 8, bar.y);
+              }
+            });
           });
           ctx.restore();
         }
@@ -2417,6 +2590,15 @@ function bindEvents(): void {
       syncModMultiUI();
       refreshAll();
     });
+  });
+
+  getEl<HTMLSelectElement>('selectEquipChartMetric')?.addEventListener('change', e => {
+    state.equipChartMetric = (e.target as HTMLSelectElement).value as
+      | 'equipamentos'
+      | 'orcamento'
+      | 'ambos'
+      | 'ri';
+    renderCharts();
   });
 
   getEl<HTMLSelectElement>('selectEquipChartGroup')?.addEventListener('change', e => {

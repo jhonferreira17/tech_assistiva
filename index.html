@@ -259,19 +259,30 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Equipamentos Entregues</h3>
+                  <h3 class="card-title" id="equipChartTitle">Equipamentos Entregues</h3>
                   <p class="card-subtitle" id="equipChartSubtitle">Distribuição de equipamentos físicos aprovados no SUS • Clique para filtrar</p>
                 </div>
-                <div class="filter-item">
-                  <label for="selectEquipChartGroup">Agrupar por</label>
-                  <select id="selectEquipChartGroup" class="filter-select">
-                    <option value="categoria" selected>Linha de Cuidado (Categoria)</option>
-                    <option value="ano">Ano (2022–2024)</option>
-                    <option value="regiao">Região do Brasil</option>
-                  </select>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                  <div class="filter-item">
+                    <label for="selectEquipChartMetric">Indicador</label>
+                    <select id="selectEquipChartMetric" class="filter-select">
+                      <option value="equipamentos" selected>Equipamentos (Qtd.)</option>
+                      <option value="orcamento">Orçamento Aprovado (R$)</option>
+                      <option value="ambos">Equipamentos + Orçamento</option>
+                      <option value="ri">Índice de Acompanhamento (Razão de Integralidade)</option>
+                    </select>
+                  </div>
+                  <div class="filter-item">
+                    <label for="selectEquipChartGroup">Agrupar por</label>
+                    <select id="selectEquipChartGroup" class="filter-select">
+                      <option value="categoria" selected>Linha de Cuidado (Categoria)</option>
+                      <option value="ano">Ano (2022–2024)</option>
+                      <option value="regiao">Região do Brasil</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div class="chart-box" style="height:320px;">
+              <div class="chart-box" style="height:340px;">
                 <canvas id="chartEquipamentosEntregues"></canvas>
               </div>
             </div>
