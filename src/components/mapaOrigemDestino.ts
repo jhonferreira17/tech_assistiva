@@ -151,15 +151,41 @@ interface FlowArrowRoute {
   weight: number;
 }
 
+interface CachedScreenRoute {
+  xs: Float32Array;
+  ys: Float32Array;
+  cumLen: Float32Array;
+  totalLen: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  color: string;
+  stepPx: number;
+  arrowLen: number;
+  arrowHalfW: number;
+}
+
 /**
  * Camada Canvas 2D de Setas em Movimento Contínuo ao longo das rotas Origem → Destino.
- * Substitui os tracejados por uma fila de setas vetoriais caminhando na curvatura exata da rota.
+ * Otimizada para 60 FPS sem delay no zoom/pan:
+ * - Projeção geográfica cacheada em TypedArrays (só recalcula em moveend/zoomend/resize)
+ * - Viewport culling em 2 níveis (bounding box por rota + recorte por seta)
+ * - Integração nativa com `leaflet-zoom-hide` e pausa durante transições de zoom/pan
+ * - Desenho vetorial direto (cos/sin) sem ctx.save()/restore() no loop interno
  */
 class AnimatedFlowArrowsLayer extends L.Layer {
   private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
   private routes: FlowArrowRoute[] = [];
+  private cachedRoutes: CachedScreenRoute[] = [];
   private animId: number | null = null;
   private startTime: number = 0;
+  private isInteracting: boolean = false;
+  private viewW: number = 0;
+  private viewH: number = 0;
+  private dpr: number = 1;
+  private tabPanelEl: HTMLElement | null = null;
 
   constructor(routes: FlowArrowRoute[] = []) {
     super();
@@ -168,6 +194,7 @@ class AnimatedFlowArrowsLayer extends L.Layer {
 
   public setRoutes(routes: FlowArrowRoute[]): void {
     this.routes = routes;
+    this.rebuildProjectionCache();
     if (this.routes.length > 0 && this.canvas && this.animId === null) {
       this.startLoop();
     } else if (this.routes.length === 0) {
@@ -176,17 +203,27 @@ class AnimatedFlowArrowsLayer extends L.Layer {
     }
   }
 
+  public refreshProjection(): void {
+    this.syncCanvasAndCache();
+  }
+
   public onAdd(map: L.Map): this {
-    this.canvas = L.DomUtil.create('canvas', 'leaflet-flow-arrows-layer') as HTMLCanvasElement;
+    this.canvas = L.DomUtil.create(
+      'canvas',
+      'leaflet-flow-arrows-layer leaflet-zoom-hide'
+    ) as HTMLCanvasElement;
     this.canvas.style.position = 'absolute';
     this.canvas.style.pointerEvents = 'none';
     this.canvas.style.zIndex = '420';
+    this.ctx = this.canvas.getContext('2d');
+    this.tabPanelEl = document.getElementById('tab-territorio');
 
     const pane = map.getPane('overlayPane');
     if (pane) pane.appendChild(this.canvas);
 
-    map.on('move zoom viewreset resize', this.syncCanvasSize, this);
-    this.syncCanvasSize();
+    map.on('zoomstart movestart', this.onInteractStart, this);
+    map.on('moveend zoomend viewreset resize', this.onInteractEnd, this);
+    this.syncCanvasAndCache();
     if (this.routes.length > 0) {
       this.startLoop();
     }
@@ -195,35 +232,118 @@ class AnimatedFlowArrowsLayer extends L.Layer {
 
   public onRemove(map: L.Map): this {
     this.stopLoop();
-    map.off('move zoom viewreset resize', this.syncCanvasSize, this);
+    map.off('zoomstart movestart', this.onInteractStart, this);
+    map.off('moveend zoomend viewreset resize', this.onInteractEnd, this);
     if (this.canvas && this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
     }
     this.canvas = null;
+    this.ctx = null;
+    this.cachedRoutes = [];
     return this;
   }
 
-  private syncCanvasSize = (): void => {
+  private onInteractStart = (): void => {
+    this.isInteracting = true;
+  };
+
+  private onInteractEnd = (): void => {
+    this.isInteracting = false;
+    this.syncCanvasAndCache();
+    if (this.cachedRoutes.length > 0) {
+      this.drawFrame((performance.now() - this.startTime) / 1000);
+    }
+  };
+
+  private syncCanvasAndCache = (): void => {
     if (!this.canvas || !this._map) return;
     const size = this._map.getSize();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (size.x <= 0 || size.y <= 0) return;
+
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.viewW = size.x;
+    this.viewH = size.y;
+
     const topLeft = this._map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this.canvas, topLeft);
 
-    const targetW = Math.max(1, Math.round(size.x * dpr));
-    const targetH = Math.max(1, Math.round(size.y * dpr));
+    const targetW = Math.max(1, Math.round(size.x * this.dpr));
+    const targetH = Math.max(1, Math.round(size.y * this.dpr));
     if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
       this.canvas.width = targetW;
       this.canvas.height = targetH;
       this.canvas.style.width = `${size.x}px`;
       this.canvas.style.height = `${size.y}px`;
     }
+
+    this.rebuildProjectionCache();
   };
 
+  private rebuildProjectionCache(): void {
+    const map = this._map;
+    if (!map || this.routes.length === 0) {
+      this.cachedRoutes = [];
+      return;
+    }
+
+    const nextCache: CachedScreenRoute[] = [];
+    for (let rIdx = 0; rIdx < this.routes.length; rIdx++) {
+      const route = this.routes[rIdx];
+      const n = route.pts.length;
+      if (n < 2) continue;
+
+      const xs = new Float32Array(n);
+      const ys = new Float32Array(n);
+      const cumLen = new Float32Array(n);
+      let totalLen = 0;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (let i = 0; i < n; i++) {
+        const p = map.latLngToContainerPoint(route.pts[i]);
+        xs[i] = p.x;
+        ys[i] = p.y;
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+
+        if (i > 0) {
+          totalLen += Math.hypot(p.x - xs[i - 1], p.y - ys[i - 1]);
+          cumLen[i] = totalLen;
+        }
+      }
+
+      if (totalLen < 12) continue;
+
+      const stepPx = Math.max(18, 15 + route.weight * 1.15);
+      const arrowLen = Math.max(7.5, Math.min(11.5, 6.5 + route.weight * 0.9));
+
+      nextCache.push({
+        xs,
+        ys,
+        cumLen,
+        totalLen,
+        minX,
+        maxX,
+        minY,
+        maxY,
+        color: route.color,
+        stepPx,
+        arrowLen,
+        arrowHalfW: arrowLen * 0.48
+      });
+    }
+
+    this.cachedRoutes = nextCache;
+  }
+
   private clearCanvas(): void {
-    if (!this.canvas) return;
-    const ctx = this.canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!this.canvas || !this.ctx) return;
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   private stopLoop(): void {
@@ -243,10 +363,11 @@ class AnimatedFlowArrowsLayer extends L.Layer {
         return;
       }
 
-      const tabPanel = document.getElementById('tab-territorio');
-      const isVisible = !tabPanel || tabPanel.classList.contains('active');
-      if (isVisible) {
-        this.drawFrame((now - this.startTime) / 1000);
+      if (!document.hidden && !this.isInteracting) {
+        const isVisible = !this.tabPanelEl || this.tabPanelEl.classList.contains('active');
+        if (isVisible && this.cachedRoutes.length > 0) {
+          this.drawFrame((now - this.startTime) / 1000);
+        }
       }
       this.animId = requestAnimationFrame(frame);
     };
@@ -255,81 +376,72 @@ class AnimatedFlowArrowsLayer extends L.Layer {
   }
 
   private drawFrame(elapsedSec: number): void {
-    if (!this.canvas || !this._map) return;
-    const size = this._map.getSize();
-    if (size.x <= 0 || size.y <= 0) return;
+    const ctx = this.ctx;
+    if (!ctx || this.viewW <= 0 || this.viewH <= 0) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const topLeft = this._map.containerPointToLayerPoint([0, 0]);
-    L.DomUtil.setPosition(this.canvas, topLeft);
+    const w = this.viewW;
+    const h = this.viewH;
+    const pad = 18;
+    const speedPx = 22;
 
-    const ctx = this.canvas.getContext('2d');
-    if (!ctx) return;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = 0.85;
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size.x, size.y);
+    for (let rIdx = 0; rIdx < this.cachedRoutes.length; rIdx++) {
+      const route = this.cachedRoutes[rIdx];
 
-    for (let rIdx = 0; rIdx < this.routes.length; rIdx++) {
-      const route = this.routes[rIdx];
-      if (route.pts.length < 2) continue;
-
-      const screenPts: Array<{ x: number; y: number }> = [];
-      const cumLen: number[] = [0];
-      let totalLen = 0;
-
-      for (let i = 0; i < route.pts.length; i++) {
-        const p = this._map.latLngToContainerPoint(route.pts[i]);
-        screenPts.push({ x: p.x, y: p.y });
-        if (i > 0) {
-          const dx = p.x - screenPts[i - 1].x;
-          const dy = p.y - screenPts[i - 1].y;
-          totalLen += Math.hypot(dx, dy);
-          cumLen.push(totalLen);
-        }
+      // Viewport culling nível 1: ignora rota inteira fora da tela
+      if (route.maxX < -pad || route.minX > w + pad || route.maxY < -pad || route.minY > h + pad) {
+        continue;
       }
 
-      if (totalLen < 12) continue;
-
-      const stepPx = Math.max(17, 15 + route.weight * 1.1);
-      const speedPx = 22;
+      const { xs, ys, cumLen, totalLen, stepPx, arrowLen, arrowHalfW } = route;
       const offsetPx = (elapsedSec * speedPx) % stepPx;
-      const arrowLen = Math.max(7.5, Math.min(11.5, 6.5 + route.weight * 0.9));
-      const arrowHalfW = arrowLen * 0.48;
+      const tipX = arrowLen * 0.65;
+      const tailX = -arrowLen * 0.45;
+      const notchX = -arrowLen * 0.16;
+
+      ctx.fillStyle = route.color;
+      ctx.beginPath();
 
       let segIdx = 0;
+      const lastSeg = cumLen.length - 2;
       for (let dist = offsetPx; dist < totalLen - 9; dist += stepPx) {
         if (dist < 6) continue;
-        while (segIdx < cumLen.length - 2 && cumLen[segIdx + 1] < dist) {
+        while (segIdx < lastSeg && cumLen[segIdx + 1] < dist) {
           segIdx++;
         }
 
         const segStart = cumLen[segIdx];
-        const segEnd = cumLen[segIdx + 1];
-        const segLen = Math.max(0.0001, segEnd - segStart);
+        const segLen = Math.max(0.0001, cumLen[segIdx + 1] - segStart);
         const frac = (dist - segStart) / segLen;
 
-        const pA = screenPts[segIdx];
-        const pB = screenPts[segIdx + 1];
-        const x = pA.x + (pB.x - pA.x) * frac;
-        const y = pA.y + (pB.y - pA.y) * frac;
-        const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+        const xA = xs[segIdx];
+        const yA = ys[segIdx];
+        const dx = xs[segIdx + 1] - xA;
+        const dy = ys[segIdx + 1] - yA;
+        const x = xA + dx * frac;
+        const y = yA + dy * frac;
 
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        ctx.beginPath();
-        ctx.moveTo(arrowLen * 0.65, 0);
-        ctx.lineTo(-arrowLen * 0.45, -arrowHalfW);
-        ctx.lineTo(-arrowLen * 0.16, 0);
-        ctx.lineTo(-arrowLen * 0.45, arrowHalfW);
+        // Viewport culling nível 2: ignora setas individuais fora da viewport (crucial em zoom alto)
+        if (x < -pad || x > w + pad || y < -pad || y > h + pad) continue;
+
+        const invHyp = 1 / Math.max(0.0001, Math.hypot(dx, dy));
+        const cos = dx * invHyp;
+        const sin = dy * invHyp;
+
+        // 4 vértices rotacionados diretamente sem ctx.save()/restore()
+        ctx.moveTo(x + tipX * cos, y + tipX * sin);
+        ctx.lineTo(x + tailX * cos + arrowHalfW * sin, y + tailX * sin - arrowHalfW * cos);
+        ctx.lineTo(x + notchX * cos, y + notchX * sin);
+        ctx.lineTo(x + tailX * cos - arrowHalfW * sin, y + tailX * sin + arrowHalfW * cos);
         ctx.closePath();
-        ctx.fillStyle = route.color;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.lineWidth = 0.85;
-        ctx.stroke();
-        ctx.restore();
       }
+
+      ctx.fill();
+      ctx.stroke();
     }
   }
 }
@@ -377,7 +489,10 @@ class SimpleCanvasHeatmapLayer extends L.Layer {
   }
 
   override onAdd(map: L.Map): this {
-    this.canvas = L.DomUtil.create('canvas', 'leaflet-heatmap-layer') as HTMLCanvasElement;
+    this.canvas = L.DomUtil.create(
+      'canvas',
+      'leaflet-heatmap-layer leaflet-zoom-hide'
+    ) as HTMLCanvasElement;
     this.canvas.style.position = 'absolute';
     this.canvas.style.pointerEvents = 'none';
     this.canvas.style.zIndex = '410';
@@ -408,10 +523,12 @@ class SimpleCanvasHeatmapLayer extends L.Layer {
 
     const topLeft = map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this.canvas, topLeft);
-    this.canvas.width = size.x;
-    this.canvas.height = size.y;
+    if (this.canvas.width !== size.x || this.canvas.height !== size.y) {
+      this.canvas.width = size.x;
+      this.canvas.height = size.y;
+    }
 
-    const ctx = this.canvas.getContext('2d');
+    const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     ctx.clearRect(0, 0, size.x, size.y);
     if (!this.points.length) return;
@@ -517,6 +634,7 @@ export class MapaOrigemDestinoController {
     if (this.map) {
       setTimeout(() => {
         this.map?.invalidateSize();
+        this.flowArrowsLayer.refreshProjection();
         this.heatmapLayer.redraw();
       }, 120);
     }
@@ -644,12 +762,12 @@ export class MapaOrigemDestinoController {
         style: feature => {
           const cod6 = String(feature?.properties?.codarea || '').slice(0, 6);
           if (polosSet.has(cod6)) {
-            return { color: '#059669', weight: 1.5, fillColor: '#10b981', fillOpacity: 0.24 };
+            return { color: '#059669', weight: 1.5, fillColor: '#10b981', fillOpacity: 0.24, smoothFactor: 1.5 };
           }
           if (origensMap.has(cod6)) {
-            return { color: '#0284c7', weight: 0.9, fillColor: '#38bdf8', fillOpacity: 0.12 };
+            return { color: '#0284c7', weight: 0.9, fillColor: '#38bdf8', fillOpacity: 0.12, smoothFactor: 1.5 };
           }
-          return { color: '#94a3b8', weight: 0.5, fillColor: '#cbd5e1', fillOpacity: 0.04 };
+          return { color: '#94a3b8', weight: 0.5, fillColor: '#cbd5e1', fillOpacity: 0.04, smoothFactor: 1.5 };
         },
         onEachFeature: (feature, layer) => {
           const cod7 = String(feature?.properties?.codarea || '');
