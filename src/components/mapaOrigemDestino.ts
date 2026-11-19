@@ -119,7 +119,7 @@ function getCurvedLatLngs(
   lat2: number,
   lon2: number,
   segments = 24
-): L.LatLngExpression[] {
+): [number, number][] {
   const latMid = (lat1 + lat2) / 2;
   const lonMid = (lon1 + lon2) / 2;
   const dLat = lat2 - lat1;
@@ -128,7 +128,7 @@ function getCurvedLatLngs(
   const ctrlLat = latMid - dLon * curvature;
   const ctrlLon = lonMid + dLat * curvature;
 
-  const pts: L.LatLngExpression[] = [];
+  const pts: [number, number][] = [];
   for (let i = 0; i <= segments; i++) {
     const t = i / segments;
     const inv = 1 - t;
@@ -137,6 +137,39 @@ function getCurvedLatLngs(
     pts.push([lat, lon]);
   }
   return pts;
+}
+
+function createArrowheadMarker(
+  pts: [number, number][],
+  color: string,
+  weight: number,
+  ratio = 0.72
+): L.Marker | null {
+  if (pts.length < 2) return null;
+  const idx = Math.max(1, Math.min(pts.length - 1, Math.floor((pts.length - 1) * ratio)));
+  const [latA, lonA] = pts[idx - 1];
+  const [latB, lonB] = pts[idx];
+
+  const cosLat = Math.cos(((latA + latB) / 2) * (Math.PI / 180));
+  const dX = (lonB - lonA) * cosLat;
+  const dY = -(latB - latA); // Y cresce para o sul na tela
+  const angleDeg = (Math.atan2(dY, dX) * 180) / Math.PI;
+  const size = Math.round(11 + weight * 1.45);
+
+  const icon = L.divIcon({
+    className: 'od-arrow-icon',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<svg width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${angleDeg.toFixed(1)}deg);display:block;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(15,23,42,0.28));">
+      <path d="M1.5 2 L14.5 8 L1.5 14 L4.8 8 Z" fill="${color}" stroke="#ffffff" stroke-width="1.25" stroke-linejoin="round" />
+    </svg>`
+  });
+
+  return L.marker([latB, lonB], {
+    icon,
+    interactive: false,
+    keyboard: false
+  });
 }
 
 function getRouteColor(distKm: number): string {
@@ -725,6 +758,8 @@ export class MapaOrigemDestinoController {
         className: 'od-flow-arc'
       });
 
+      const arrowMarker = createArrowheadMarker(latlngs, color, weight, 0.72);
+
       polyline.bindTooltip(
         `<div style="font-size:12px;line-height:1.45;">
           <strong>${r.n_orig} (${r.uf_orig}) → ${r.n_dest} (${r.uf_dest})</strong><br/>
@@ -733,14 +768,23 @@ export class MapaOrigemDestinoController {
         { sticky: true }
       );
 
-      polyline.on('mouseover', () => polyline.setStyle({ weight: weight + 2, opacity: 1.0 }));
-      polyline.on('mouseout', () => polyline.setStyle({ weight, opacity: 0.78 }));
+      polyline.on('mouseover', () => {
+        polyline.setStyle({ weight: weight + 2, opacity: 1.0 });
+        arrowMarker?.setZIndexOffset(500);
+      });
+      polyline.on('mouseout', () => {
+        polyline.setStyle({ weight, opacity: 0.78 });
+        arrowMarker?.setZIndexOffset(0);
+      });
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
         void this.renderRouteDetailCardWithOSRM(r);
       });
 
       this.arcsLayer.addLayer(polyline);
+      if (arrowMarker) {
+        this.arcsLayer.addLayer(arrowMarker);
+      }
     });
 
     if (drawRoutes) {
