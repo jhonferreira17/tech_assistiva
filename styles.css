@@ -832,5 +832,12 @@ body {
 }
 
 .od-flow-arc {
-  stroke-linecap: round;
+  stroke-dasharray: 8, 5;
+  animation: dashFlow 1.8s linear infinite;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -26;
+  }
 }
