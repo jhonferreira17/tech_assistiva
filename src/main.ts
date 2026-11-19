@@ -51,11 +51,38 @@ const state: FiltroGlobalState = {
 };
 
 const charts: Record<string, Chart> = {};
+const pendingChartConfigs: Record<string, any> = {};
 const municipioLookupByLabel = new Map<string, { cod: string; nome: string; uf: string }>();
 let lastDatalistUf: string | null = null;
 let staticTablesRendered = false;
 let staticChartsRendered = false;
 let sigtapExcluidosRendered = false;
+
+function isCanvasVisible(el: HTMLCanvasElement): boolean {
+  return el.offsetParent !== null && el.clientWidth > 0 && el.clientHeight > 0;
+}
+
+function mountVisibleChartsIn(container: HTMLElement | null): void {
+  if (!container) return;
+  container.querySelectorAll('canvas[id]').forEach(node => {
+    const canvas = node as HTMLCanvasElement;
+    const id = canvas.id;
+    const cfg = pendingChartConfigs[id];
+    if (!cfg || !isCanvasVisible(canvas)) return;
+
+    if (charts[id]) {
+      if (canvas.width === 0 || canvas.height === 0) {
+        charts[id].destroy();
+        charts[id] = new Chart(canvas, cfg);
+      } else {
+        charts[id].resize();
+        charts[id].update('none');
+      }
+    } else {
+      charts[id] = new Chart(canvas, cfg);
+    }
+  });
+}
 
 function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: number): T {
   let timer: number | null = null;
@@ -895,22 +922,35 @@ function renderCharts(forceStatic = false): void {
   const isDark = document.body.classList.contains('dark-theme');
   const textColor = isDark ? '#cbd5e1' : '#475569';
   const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
+  const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(15, 23, 42, 0.92)';
 
   Chart.defaults.color = textColor;
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.animation = { duration: 180 };
+  Chart.defaults.plugins.tooltip.backgroundColor = tooltipBg;
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.titleFont = { weight: 'bold', size: 12 };
+  Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+
+  const pointerHover = (event: any, elements: any[]) => {
+    const target = event?.native?.target as HTMLElement | undefined;
+    if (target) target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+  };
 
   function createOrUpdateChart(id: string, config: any): void {
+    pendingChartConfigs[id] = config;
     if (charts[id]) {
       charts[id].destroy();
+      delete charts[id];
     }
     const ctx = getEl<HTMLCanvasElement>(id);
-    if (ctx) {
+    if (ctx && isCanvasVisible(ctx)) {
       charts[id] = new Chart(ctx, config);
     }
   }
 
-  // 1. Chart Série Mensal
+  // 1. Chart Série Mensal (interativo: clique no mês filtra o ano)
   const serieFiltered = DB.serie_mensal.filter(d => state.ano === 'ALL' || String(d.ano) === String(state.ano));
   createOrUpdateChart('chartSerieMensal', {
     type: 'bar',
@@ -925,6 +965,7 @@ function renderCharts(forceStatic = false): void {
           backgroundColor: '#d97706',
           borderWidth: 2,
           pointRadius: 2.5,
+          pointHoverRadius: 5,
           yAxisID: 'y1',
           tension: 0.25
         },
@@ -933,6 +974,7 @@ function renderCharts(forceStatic = false): void {
           label: 'Equipamentos Entregues',
           data: serieFiltered.map(d => d.prod_qtd_apr),
           backgroundColor: '#0284c7',
+          hoverBackgroundColor: '#0369a1',
           borderRadius: 3,
           yAxisID: 'y'
         },
@@ -941,6 +983,7 @@ function renderCharts(forceStatic = false): void {
           label: 'Atendimentos de Adaptação',
           data: serieFiltered.map(d => d.proc_qtd_apr),
           backgroundColor: '#0d9488',
+          hoverBackgroundColor: '#0f766e',
           borderRadius: 3,
           yAxisID: 'y'
         }
@@ -950,6 +993,28 @@ function renderCharts(forceStatic = false): void {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (!els.length) return;
+        const item = serieFiltered[els[0].index];
+        if (!item) return;
+        const clickedAno = String(item.ano) as FiltroGlobalState['ano'];
+        state.ano = state.ano === clickedAno ? 'ALL' : clickedAno;
+        const selAno = getEl<HTMLSelectElement>('filterAno');
+        if (selAno) selAno.value = state.ano;
+        refreshAll();
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => {
+              const val = Number(ctx.parsed.y ?? 0);
+              if (ctx.dataset.yAxisID === 'y1') return ` ${ctx.dataset.label}: ${fmtDec4.format(val)}`;
+              return ` ${ctx.dataset.label}: ${fmtInt.format(val)}`;
+            }
+          }
+        }
+      },
       scales: {
         x: { grid: { display: false } },
         y: { type: 'linear', position: 'left', grid: { color: gridColor } },
@@ -1018,6 +1083,27 @@ function renderCharts(forceStatic = false): void {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (!els.length) return;
+        const clickedMod = modOrder[els[0].index];
+        if (!clickedMod) return;
+        state.modalidade = state.modalidade === clickedMod ? 'ALL' : clickedMod;
+        const selMod = getEl<HTMLSelectElement>('filterModalidade');
+        if (selMod) selMod.value = state.modalidade;
+        refreshAll();
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => {
+              const val = Number(ctx.parsed.y ?? 0);
+              if (ctx.dataset.yAxisID === 'y1') return ` ${ctx.dataset.label}: ${fmtDec4.format(val)}`;
+              return ` ${ctx.dataset.label}: ${fmtInt.format(val)}`;
+            }
+          }
+        }
+      },
       scales: {
         x: { grid: { display: false } },
         y: { type: 'linear', position: 'left', grid: { color: gridColor } },
@@ -1161,6 +1247,13 @@ function renderCharts(forceStatic = false): void {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: ${fmtInt.format(Number(ctx.parsed.y ?? 0))} registros`
+          }
+        }
+      },
       scales: {
         x: { grid: { display: false } },
         y: { grid: { color: gridColor } }
@@ -1294,6 +1387,13 @@ function renderCharts(forceStatic = false): void {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: ${fmtDec2.format(Number(ctx.parsed.y ?? 0))} / 1.000 PcD`
+          }
+        }
+      },
       scales: {
         x: { grid: { display: false } },
         y: { grid: { color: gridColor } }
@@ -1362,6 +1462,24 @@ function renderCharts(forceStatic = false): void {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (!els.length) return;
+        const macroRow = macrosOd[els[0].index];
+        if (!macroRow) return;
+        const clickedMacro = macroRow.macrorregiao as MacrorregiaoBrasil;
+        state.macro = state.macro === clickedMacro ? 'ALL' : clickedMacro;
+        const selMacro = getEl<HTMLSelectElement>('filterMacro');
+        if (selMacro) selMacro.value = state.macro;
+        refreshAll();
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: ${fmtDec1.format(Number(ctx.parsed.y ?? 0))} km`
+          }
+        }
+      },
       scales: {
         x: { grid: { display: false } },
         y: { grid: { color: gridColor } }
@@ -1398,13 +1516,19 @@ function renderCharts(forceStatic = false): void {
   staticChartsRendered = true;
   } // fim gráficos estáticos 7 a 13
 
-  // 14. Chart 10 Melhores e 10 Piores por Localidade
+  // 14. Chart 10 Melhores e 10 Piores por Localidade (seção dedicada + interativo)
   const targetYearTop10 = state.ano === 'ALL' ? 'Triênio' : String(state.ano);
-  let rankedItems: Array<{ label: string; value: number }> = [];
+  let rankedItems: Array<{ label: string; value: number; uf: string; codMun?: string; nomeMun?: string }> = [];
   let metricLabel = 'Taxa por 1.000 PcD';
 
   if (state.top10Metric === 'ri') metricLabel = 'Índice de Acompanhamento (RI)';
   else if (state.top10Metric === 'prod') metricLabel = 'Equipamentos Entregues';
+
+  const formatMetricVal = (v: number): string => {
+    if (state.top10Metric === 'ri') return fmtDec4.format(v);
+    if (state.top10Metric === 'prod') return fmtInt.format(v);
+    return `${fmtDec2.format(v)} / 1k PcD`;
+  };
 
   if (state.top10Scope === 'UF') {
     const ufList = DB.resumo_uf.filter(
@@ -1412,6 +1536,7 @@ function renderCharts(forceStatic = false): void {
     );
     rankedItems = ufList.map(r => ({
       label: `${r.uf} — ${r.uf_nome}`,
+      uf: r.uf,
       value:
         state.top10Metric === 'ri'
           ? Number(r.razao_integralidade || 0)
@@ -1425,6 +1550,9 @@ function renderCharts(forceStatic = false): void {
     );
     rankedItems = polosList.map(r => ({
       label: `${r.municipio} (${r.uf})`,
+      uf: r.uf,
+      codMun: r.cod_mun_6,
+      nomeMun: r.municipio,
       value:
         state.top10Metric === 'ri'
           ? Number(r.ri_oferta || 0)
@@ -1446,8 +1574,34 @@ function renderCharts(forceStatic = false): void {
         : state.uf === 'ALL'
         ? 'Municípios Polos do Brasil (314)'
         : `Municípios Polos de ${state.uf}`;
-    subEl.textContent = `${scopeTxt} • Critério: ${metricLabel}`;
+    subEl.textContent = `${scopeTxt} • Critério: ${metricLabel} • Clique em qualquer barra para filtrar`;
   }
+
+  const handleRankingBarClick = (list: typeof top10Best, idx: number): void => {
+    const item = list[idx];
+    if (!item) return;
+    if (state.top10Scope === 'UF') {
+      state.uf = state.uf === item.uf ? 'ALL' : item.uf;
+      state.municipioCod = '';
+      state.municipioNome = '';
+      const selUF = getEl<HTMLSelectElement>('filterUF');
+      if (selUF) selUF.value = state.uf;
+      const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+      if (inputMun) inputMun.value = '';
+      populateMunicipioDatalist();
+      refreshAll();
+    } else if (item.codMun) {
+      state.municipioCod = item.codMun;
+      state.municipioNome = item.nomeMun || '';
+      state.uf = item.uf;
+      const selUF = getEl<HTMLSelectElement>('filterUF');
+      if (selUF) selUF.value = item.uf;
+      const inputMun = getEl<HTMLInputElement>('filterMunicipio');
+      if (inputMun) inputMun.value = `${item.nomeMun} (${item.uf})`;
+      populateMunicipioDatalist();
+      refreshAll();
+    }
+  };
 
   createOrUpdateChart('chartTop10Melhores', {
     type: 'bar',
@@ -1458,6 +1612,7 @@ function renderCharts(forceStatic = false): void {
           label: metricLabel,
           data: top10Best.map(x => x.value),
           backgroundColor: '#059669',
+          hoverBackgroundColor: '#047857',
           borderRadius: 4
         }
       ]
@@ -1466,7 +1621,18 @@ function renderCharts(forceStatic = false): void {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (els.length) handleRankingBarClick(top10Best, els[0].index);
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${metricLabel}: ${formatMetricVal(Number(ctx.parsed.x ?? 0))}`
+          }
+        }
+      },
       scales: {
         x: { grid: { color: gridColor } },
         y: { grid: { display: false } }
@@ -1483,6 +1649,7 @@ function renderCharts(forceStatic = false): void {
           label: metricLabel,
           data: top10Worst.map(x => x.value),
           backgroundColor: '#e11d48',
+          hoverBackgroundColor: '#be123c',
           borderRadius: 4
         }
       ]
@@ -1491,13 +1658,45 @@ function renderCharts(forceStatic = false): void {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (els.length) handleRankingBarClick(top10Worst, els[0].index);
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => ` ${metricLabel}: ${formatMetricVal(Number(ctx.parsed.x ?? 0))}`
+          }
+        }
+      },
       scales: {
         x: { grid: { color: gridColor } },
         y: { grid: { display: false } }
       }
     }
   });
+
+  // Tabela comparativa 10 Melhores vs. 10 Piores
+  const tbTop10 = document.querySelector('#tableTop10Comparativo tbody');
+  if (tbTop10) {
+    const maxRows = Math.max(top10Best.length, top10Worst.length);
+    const rowsHtml: string[] = [];
+    for (let i = 0; i < maxRows; i++) {
+      const b = top10Best[i];
+      const w = top10Worst[i];
+      rowsHtml.push(`
+        <tr>
+          <td><strong>#${i + 1}</strong></td>
+          <td>${b ? `<strong style="color:var(--emerald);">${b.label}</strong>` : '—'}</td>
+          <td class="num-col">${b ? `<strong>${formatMetricVal(b.value)}</strong>` : '—'}</td>
+          <td>${w ? `<strong style="color:var(--rose);">${w.label}</strong>` : '—'}</td>
+          <td class="num-col">${w ? `<strong>${formatMetricVal(w.value)}</strong>` : '—'}</td>
+        </tr>
+      `);
+    }
+    tbTop10.innerHTML = rowsHtml.join('');
+  }
 }
 
 function refreshAll(): void {
@@ -1521,7 +1720,10 @@ function bindEvents(): void {
       const targetId = btn.getAttribute('data-tab');
       if (targetId) {
         const target = getEl(targetId);
-        if (target) target.classList.add('active');
+        if (target) {
+          target.classList.add('active');
+          requestAnimationFrame(() => mountVisibleChartsIn(target));
+        }
         if (targetId === 'tab-territorio') {
           odMapController.initMap('odLeafletMap');
           if (state.uf !== 'ALL') {
@@ -1546,7 +1748,10 @@ function bindEvents(): void {
         const targetId = btn.getAttribute('data-target');
         if (targetId) {
           const panel = getEl(targetId);
-          if (panel) panel.classList.add('active');
+          if (panel) {
+            panel.classList.add('active');
+            requestAnimationFrame(() => mountVisibleChartsIn(panel));
+          }
         }
       });
     });

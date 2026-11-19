@@ -37,6 +37,10 @@
             <span class="tab-step">📊</span>
             <span>Painel Geral</span>
           </button>
+          <button class="nav-tab" data-tab="tab-ranking" role="tab" aria-selected="false">
+            <span class="tab-step">🏆</span>
+            <span>Ranking (Top 10)</span>
+          </button>
           <button class="nav-tab" data-tab="tab-territorio" role="tab" aria-selected="false">
             <span class="tab-step">🗺️</span>
             <span>Mapa &amp; Cobertura</span>
@@ -232,59 +236,11 @@
                 <div class="card-header">
                   <div>
                     <h3 class="card-title">Equipamentos vs. Adaptação por Linha de Cuidado</h3>
-                    <p class="card-subtitle">Volume entregue e proporção de acompanhamento clínico</p>
+                    <p class="card-subtitle">Volume entregue e acompanhamento clínico • Clique em uma barra para filtrar</p>
                   </div>
                 </div>
                 <div class="chart-box">
                   <canvas id="chartModalidadesCap1"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <!-- Ranking 10 Melhores e 10 Piores por Localidade -->
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <h3 class="card-title">10 Melhores e 10 Piores por Localidade</h3>
-                  <p class="card-subtitle" id="top10Subtitle">Comparativo de desempenho assistencial por estado ou
-                    município polo</p>
-                </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                  <div class="filter-item">
-                    <label for="selectTop10Scope">Localidade</label>
-                    <select id="selectTop10Scope" class="filter-select">
-                      <option value="UF" selected>Estados (27 UFs)</option>
-                      <option value="MUNICIPIO">Municípios Polos (314)</option>
-                    </select>
-                  </div>
-                  <div class="filter-item">
-                    <label for="selectTop10Metric">Indicador</label>
-                    <select id="selectTop10Metric" class="filter-select">
-                      <option value="taxa_1k_pcd" selected>Taxa por 1.000 PcD</option>
-                      <option value="ri">Índice de Acompanhamento (RI)</option>
-                      <option value="prod">Volume de Equipamentos</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div class="grid-2" style="margin-bottom:0;">
-                <div>
-                  <div
-                    style="font-size:12px;font-weight:700;color:var(--emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
-                    ▲ 10 Melhores Localidades
-                  </div>
-                  <div class="chart-box" style="height:310px;">
-                    <canvas id="chartTop10Melhores"></canvas>
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style="font-size:12px;font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
-                    ▼ 10 Piores Localidades
-                  </div>
-                  <div class="chart-box" style="height:310px;">
-                    <canvas id="chartTop10Piores"></canvas>
-                  </div>
                 </div>
               </div>
             </div>
@@ -368,6 +324,84 @@
                   <tbody></tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 1B — RANKING: 10 MELHORES E 10 PIORES POR LOCALIDADE
+             ================================================================= -->
+        <section id="tab-ranking" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>10 Melhores e 10 Piores por Localidade</h2>
+              <p id="top10Subtitle">Comparativo de desempenho assistencial por estado ou município polo • Clique em qualquer barra para filtrar</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <div class="filter-item">
+                <label for="selectTop10Scope">Localidade</label>
+                <select id="selectTop10Scope" class="filter-select">
+                  <option value="UF" selected>Estados (27 UFs)</option>
+                  <option value="MUNICIPIO">Municípios Polos (314)</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="selectTop10Metric">Indicador</label>
+                <select id="selectTop10Metric" class="filter-select">
+                  <option value="taxa_1k_pcd" selected>Taxa por 1.000 PcD</option>
+                  <option value="ri">Índice de Acompanhamento (RI)</option>
+                  <option value="prod">Volume de Equipamentos</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title" style="color:var(--emerald);">▲ 10 Melhores Localidades</h3>
+                  <p class="card-subtitle">Maior desempenho no indicador selecionado • Clique na barra para filtrar</p>
+                </div>
+              </div>
+              <div class="chart-box" style="height:360px;">
+                <canvas id="chartTop10Melhores"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title" style="color:var(--rose);">▼ 10 Piores Localidades</h3>
+                  <p class="card-subtitle">Menor desempenho no indicador selecionado • Clique na barra para filtrar</p>
+                </div>
+              </div>
+              <div class="chart-box" style="height:360px;">
+                <canvas id="chartTop10Piores"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Quadro Comparativo — 10 Melhores vs. 10 Piores</h3>
+                <p class="card-subtitle">Valores exatos do recorte selecionado para comparação direta</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="sci-table" id="tableTop10Comparativo">
+                <thead>
+                  <tr>
+                    <th>Posição</th>
+                    <th>▲ Melhor Localidade</th>
+                    <th class="num-col">Valor (Melhor)</th>
+                    <th>▼ Pior Localidade</th>
+                    <th class="num-col">Valor (Pior)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
         </section>
