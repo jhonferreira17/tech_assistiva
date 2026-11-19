@@ -126,18 +126,49 @@
             </div>
             <div id="muniDropdownList" class="muni-dropdown" role="listbox"></div>
           </div>
-          <div class="filter-item">
-            <label for="filterModalidade">Linha de Cuidado</label>
-            <select id="filterModalidade" class="filter-select">
-              <option value="ALL">Todas as Tecnologias</option>
-              <option value="TA04">Audição (Aparelhos Auditivos / FM)</option>
-              <option value="TA01">Locomoção (Cadeiras de Rodas / Andadores)</option>
-              <option value="TA05">Visão e Baixa Visão (Óculos / Próteses)</option>
-              <option value="TA02">Órteses Ortopédicas</option>
-              <option value="TA10">Adequação Postural e Prevenção de Lesões</option>
-              <option value="TA03">Próteses de Membros</option>
-              <option value="TA06">Reabilitação Vocal (Laringe Eletrônica)</option>
-            </select>
+          <div class="filter-item" id="modMultiWrap">
+            <label for="btnModMultiToggle">Linha de Cuidado</label>
+            <div class="mod-select-box">
+              <button type="button" id="btnModMultiToggle" class="filter-select mod-multi-btn" aria-haspopup="listbox"
+                aria-expanded="false">
+                <span id="modMultiLabel">Todas as Tecnologias</span>
+                <span class="mod-multi-caret">▾</span>
+              </button>
+              <div id="modMultiDropdown" class="mod-multi-dropdown" role="listbox" aria-multiselectable="true">
+                <label class="mod-check-item">
+                  <input type="checkbox" id="chkModAll" checked />
+                  <span>Todas as Tecnologias</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA04" checked />
+                  <span>Audição (Aparelhos Auditivos / FM)</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA01" checked />
+                  <span>Locomoção (Cadeiras de Rodas / Andadores)</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA05" checked />
+                  <span>Visão e Baixa Visão (Óculos / Próteses)</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA02" checked />
+                  <span>Órteses Ortopédicas</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA10" checked />
+                  <span>Adequação Postural e Prevenção de Lesões</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA03" checked />
+                  <span>Próteses de Membros</span>
+                </label>
+                <label class="mod-check-item">
+                  <input type="checkbox" class="chk-mod-item" value="TA06" checked />
+                  <span>Reabilitação Vocal (Laringe Eletrônica)</span>
+                </label>
+              </div>
+            </div>
           </div>
           <button class="btn" id="btnResetFilters">Limpar</button>
         </div>
@@ -225,6 +256,26 @@
               caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem
               o respectivo retorno registrado para adaptação ou treino.
             </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Equipamentos Entregues</h3>
+                  <p class="card-subtitle" id="equipChartSubtitle">Distribuição de equipamentos físicos aprovados no SUS • Clique para filtrar</p>
+                </div>
+                <div class="filter-item">
+                  <label for="selectEquipChartGroup">Agrupar por</label>
+                  <select id="selectEquipChartGroup" class="filter-select">
+                    <option value="categoria" selected>Linha de Cuidado (Categoria)</option>
+                    <option value="ano">Ano (2022–2024)</option>
+                    <option value="regiao">Região do Brasil</option>
+                  </select>
+                </div>
+              </div>
+              <div class="chart-box" style="height:320px;">
+                <canvas id="chartEquipamentosEntregues"></canvas>
+              </div>
+            </div>
+
             <div class="card">
               <div class="card-header">
                 <div>

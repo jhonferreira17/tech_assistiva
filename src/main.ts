@@ -36,19 +36,68 @@ function formatCompactBRL(val: number): string {
   return fmtBRL.format(val);
 }
 
+const ALL_MODALIDADES: ModalidadeISO9999[] = ['TA04', 'TA01', 'TA05', 'TA02', 'TA10', 'TA03', 'TA06'];
+const MOD_SHORT_NAMES: Record<ModalidadeISO9999, string> = {
+  TA04: 'Audição',
+  TA01: 'Locomoção',
+  TA05: 'Visão',
+  TA02: 'Órteses',
+  TA10: 'Adequação Postural',
+  TA03: 'Próteses',
+  TA06: 'Reabilitação Vocal'
+};
+
 const state: FiltroGlobalState = {
   ano: 'ALL',
   macro: 'ALL',
   uf: 'ALL',
   municipioCod: '',
   municipioNome: '',
-  modalidade: 'ALL',
+  modalidades: [],
+  equipChartGroup: 'categoria',
   sigtapSearch: '',
   sigtapTipo: 'ALL',
   poloMunSearch: '',
   top10Scope: 'UF',
   top10Metric: 'taxa_1k_pcd'
 };
+
+function isModSelected(mod: string): boolean {
+  return state.modalidades.length === 0 || state.modalidades.includes(mod as ModalidadeISO9999);
+}
+
+function syncModMultiUI(): void {
+  const labelEl = getEl('modMultiLabel');
+  const chkAll = getEl<HTMLInputElement>('chkModAll');
+  const itemChecks = Array.from(document.querySelectorAll<HTMLInputElement>('.chk-mod-item'));
+
+  const isAll = state.modalidades.length === 0 || state.modalidades.length === ALL_MODALIDADES.length;
+  if (isAll && state.modalidades.length === ALL_MODALIDADES.length) {
+    state.modalidades = [];
+  }
+
+  if (chkAll) {
+    chkAll.checked = state.modalidades.length === 0;
+    chkAll.indeterminate = state.modalidades.length > 0 && state.modalidades.length < ALL_MODALIDADES.length;
+  }
+
+  itemChecks.forEach(chk => {
+    const val = chk.value as ModalidadeISO9999;
+    chk.checked = state.modalidades.length === 0 || state.modalidades.includes(val);
+  });
+
+  if (labelEl) {
+    if (state.modalidades.length === 0) {
+      labelEl.textContent = 'Todas as Tecnologias';
+    } else if (state.modalidades.length === 1) {
+      labelEl.textContent = MOD_SHORT_NAMES[state.modalidades[0]] || state.modalidades[0];
+    } else if (state.modalidades.length === 2) {
+      labelEl.textContent = state.modalidades.map(m => MOD_SHORT_NAMES[m] || m).join(', ');
+    } else {
+      labelEl.textContent = `${state.modalidades.length} categorias selecionadas`;
+    }
+  }
+}
 
 const charts: Record<string, Chart> = {};
 const pendingChartConfigs: Record<string, any> = {};
@@ -375,7 +424,7 @@ function getFilteredCubo(): CuboUfAnoModalidade[] {
     if (state.ano !== 'ALL' && String(r.ano) !== String(state.ano)) return false;
     if (state.macro !== 'ALL' && r.macrorregiao !== state.macro) return false;
     if (state.uf !== 'ALL' && r.uf !== state.uf) return false;
-    if (state.modalidade !== 'ALL' && r.modalidade !== state.modalidade) return false;
+    if (!isModSelected(r.modalidade)) return false;
     return true;
   });
 }
@@ -526,7 +575,7 @@ function renderSigtapTable(): void {
 
   const q = state.sigtapSearch.trim().toLowerCase();
   const rows = DB.sigtap_catalog.filter(r => {
-    if (state.modalidade !== 'ALL' && r.modalidade !== state.modalidade) return false;
+    if (!isModSelected(r.modalidade)) return false;
     if (state.sigtapTipo === 'Produto' && r.tipo_registro !== 'Produto') return false;
     if (state.sigtapTipo === 'Procedimento' && r.tipo_registro !== 'Procedimento') return false;
     if (state.sigtapTipo === 'ZERO' && !r.tarifa_zero_normativa) return false;
@@ -724,7 +773,7 @@ function renderStaticAndDynamicTables(): void {
   const tb22 = document.querySelector('#tableCBO22 tbody');
   if (tb22) {
     tb22.innerHTML = DB.cbo_tabela_2_2
-      .filter(r => state.modalidade === 'ALL' || r.modalidade === state.modalidade)
+      .filter(r => isModSelected(r.modalidade))
       .map(
         r => `
         <tr>
@@ -744,7 +793,7 @@ function renderStaticAndDynamicTables(): void {
   const tb23 = document.querySelector('#tableCID23 tbody');
   if (tb23) {
     tb23.innerHTML = DB.cid10_tabela_2_3
-      .filter(r => state.modalidade === 'ALL' || r.modalidade === state.modalidade)
+      .filter(r => isModSelected(r.modalidade))
       .map(
         r => `
         <tr>
@@ -1230,7 +1279,7 @@ function renderCharts(forceStatic = false): void {
     }
   });
 
-  // 2. Chart Modalidades Cap 1
+  // 2. Chart Modalidades Cap 1 + 2B. Chart Equipamentos Entregues (reage aos checkboxes multi-seleção)
   const modOrder: ModalidadeISO9999[] = ['TA04', 'TA01', 'TA05', 'TA02', 'TA10', 'TA03', 'TA06'];
   const modLabels: Record<ModalidadeISO9999, string> = {
     TA04: 'TA04 Audição',
@@ -1241,27 +1290,177 @@ function renderCharts(forceStatic = false): void {
     TA03: 'TA03 Próteses',
     TA06: 'TA06 Vocal'
   };
+  const modColors: Record<ModalidadeISO9999, string> = {
+    TA04: '#0284c7',
+    TA01: '#0d9488',
+    TA05: '#4f46e5',
+    TA02: '#d97706',
+    TA10: '#059669',
+    TA03: '#e11d48',
+    TA06: '#7c3aed'
+  };
+  const activeModOrder = modOrder.filter(m => isModSelected(m));
   const filteredCubo = getFilteredCubo();
   const modProd: Record<string, number> = {};
   const modProc: Record<string, number> = {};
+  const modVal: Record<string, number> = {};
   modOrder.forEach(m => {
     modProd[m] = 0;
     modProc[m] = 0;
+    modVal[m] = 0;
   });
   filteredCubo.forEach(r => {
-    if (r.tipo_registro === 'Produto') modProd[r.modalidade] = (modProd[r.modalidade] || 0) + r.qtd_aprovada;
-    else modProc[r.modalidade] = (modProc[r.modalidade] || 0) + r.qtd_aprovada;
+    if (r.tipo_registro === 'Produto') {
+      modProd[r.modalidade] = (modProd[r.modalidade] || 0) + r.qtd_aprovada;
+      modVal[r.modalidade] = (modVal[r.modalidade] || 0) + r.val_aprovado;
+    } else {
+      modProc[r.modalidade] = (modProc[r.modalidade] || 0) + r.qtd_aprovada;
+    }
+  });
+
+  // 2B. Novo Gráfico Dedicado: Equipamentos Entregues (Produtos Físicos)
+  const prodOnlyCubo = filteredCubo.filter(r => r.tipo_registro === 'Produto');
+  const totalEquipFiltrado = prodOnlyCubo.reduce((acc, r) => acc + r.qtd_aprovada, 0);
+  const equipSubEl = getEl('equipChartSubtitle');
+
+  let equipLabels: string[] = [];
+  let equipValues: number[] = [];
+  let equipValsBRL: number[] = [];
+  let equipColors: string[] = [];
+  let equipKeys: string[] = [];
+
+  if (state.equipChartGroup === 'ano') {
+    const anosList = ['2022', '2023', '2024'];
+    equipLabels = anosList.map(a => `Ano ${a}`);
+    equipKeys = anosList;
+    equipValues = anosList.map(a =>
+      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.qtd_aprovada, 0)
+    );
+    equipValsBRL = anosList.map(a =>
+      prodOnlyCubo.filter(r => String(r.ano) === a).reduce((acc, r) => acc + r.val_aprovado, 0)
+    );
+    equipColors = ['#0284c7', '#0d9488', '#059669'];
+    if (equipSubEl) {
+      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por ano • Clique em uma barra para filtrar o ano`;
+    }
+  } else if (state.equipChartGroup === 'regiao') {
+    const macroList: MacrorregiaoBrasil[] = ['Sudeste', 'Nordeste', 'Sul', 'Centro-Oeste', 'Norte'];
+    const macroStats = macroList
+      .map((mc, i) => ({
+        key: mc,
+        label: mc,
+        qtd: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.qtd_aprovada, 0),
+        val: prodOnlyCubo.filter(r => r.macrorregiao === mc).reduce((acc, r) => acc + r.val_aprovado, 0),
+        color: ['#0284c7', '#d97706', '#059669', '#4f46e5', '#e11d48'][i]
+      }))
+      .sort((a, b) => b.qtd - a.qtd);
+    equipLabels = macroStats.map(s => s.label);
+    equipKeys = macroStats.map(s => s.key);
+    equipValues = macroStats.map(s => s.qtd);
+    equipValsBRL = macroStats.map(s => s.val);
+    equipColors = macroStats.map(s => s.color);
+    if (equipSubEl) {
+      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos por região • Clique em uma barra para filtrar a região`;
+    }
+  } else {
+    const catStats = activeModOrder
+      .map(m => ({
+        key: m,
+        label: modLabels[m],
+        qtd: modProd[m] || 0,
+        val: modVal[m] || 0,
+        color: modColors[m]
+      }))
+      .sort((a, b) => b.qtd - a.qtd);
+    equipLabels = catStats.map(s => s.label);
+    equipKeys = catStats.map(s => s.key);
+    equipValues = catStats.map(s => s.qtd);
+    equipValsBRL = catStats.map(s => s.val);
+    equipColors = catStats.map(s => s.color);
+    if (equipSubEl) {
+      equipSubEl.textContent = `Total no filtro: ${fmtInt.format(totalEquipFiltrado)} equipamentos físicos (${activeModOrder.length} categoria${activeModOrder.length > 1 ? 's' : ''}) • Clique em uma barra para alternar`;
+    }
+  }
+
+  createOrUpdateChart('chartEquipamentosEntregues', {
+    type: 'bar',
+    data: {
+      labels: equipLabels,
+      datasets: [
+        {
+          label: 'Equipamentos Entregues',
+          data: equipValues,
+          backgroundColor: equipColors,
+          borderRadius: 5
+        }
+      ]
+    },
+    options: {
+      indexAxis: state.equipChartGroup === 'ano' ? 'x' : 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      onHover: pointerHover,
+      onClick: (_ev: any, els: any[]) => {
+        if (!els.length) return;
+        const idx = els[0].index;
+        const key = equipKeys[idx];
+        if (!key) return;
+        if (state.equipChartGroup === 'ano') {
+          const clickedAno = key as FiltroGlobalState['ano'];
+          state.ano = state.ano === clickedAno ? 'ALL' : clickedAno;
+          const selAno = getEl<HTMLSelectElement>('filterAno');
+          if (selAno) selAno.value = state.ano;
+        } else if (state.equipChartGroup === 'regiao') {
+          const clickedMacro = key as MacrorregiaoBrasil;
+          state.macro = state.macro === clickedMacro ? 'ALL' : clickedMacro;
+          const selMacro = getEl<HTMLSelectElement>('filterMacro');
+          if (selMacro) selMacro.value = state.macro;
+          populateUfSelector();
+          populateMunicipioDatalist();
+        } else {
+          const mod = key as ModalidadeISO9999;
+          if (state.modalidades.length === 1 && state.modalidades[0] === mod) {
+            state.modalidades = [];
+          } else {
+            state.modalidades = [mod];
+          }
+          syncModMultiUI();
+        }
+        scheduleRefreshAll();
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => {
+              const i = ctx.dataIndex;
+              const qtd = equipValues[i] || 0;
+              const pct = totalEquipFiltrado > 0 ? (qtd * 100) / totalEquipFiltrado : 0;
+              const brl = equipValsBRL[i] || 0;
+              return [
+                ` Equipamentos: ${fmtInt.format(qtd)} (${fmtDec1.format(pct)}%)`,
+                ` Investimento: ${formatCompactBRL(brl)}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: state.equipChartGroup === 'ano' ? 'transparent' : gridColor } },
+        y: { grid: { color: state.equipChartGroup === 'ano' ? gridColor : 'transparent' } }
+      }
+    }
   });
 
   createOrUpdateChart('chartModalidadesCap1', {
     type: 'bar',
     data: {
-      labels: modOrder.map(m => modLabels[m]),
+      labels: activeModOrder.map(m => modLabels[m]),
       datasets: [
         {
           type: 'bar',
           label: 'Equipamentos Entregues',
-          data: modOrder.map(m => modProd[m]),
+          data: activeModOrder.map(m => modProd[m]),
           backgroundColor: '#0284c7',
           borderRadius: 4,
           yAxisID: 'y'
@@ -1269,7 +1468,7 @@ function renderCharts(forceStatic = false): void {
         {
           type: 'bar',
           label: 'Atendimentos de Adaptação',
-          data: modOrder.map(m => modProc[m]),
+          data: activeModOrder.map(m => modProc[m]),
           backgroundColor: '#0d9488',
           borderRadius: 4,
           yAxisID: 'y'
@@ -1277,7 +1476,7 @@ function renderCharts(forceStatic = false): void {
         {
           type: 'line',
           label: 'Índice de Acompanhamento',
-          data: modOrder.map(m => (modProd[m] > 0 ? +(modProc[m] / modProd[m]).toFixed(4) : 0)),
+          data: activeModOrder.map(m => (modProd[m] > 0 ? +(modProc[m] / modProd[m]).toFixed(4) : 0)),
           borderColor: '#d97706',
           backgroundColor: '#d97706',
           borderWidth: 2,
@@ -1293,11 +1492,14 @@ function renderCharts(forceStatic = false): void {
       onHover: pointerHover,
       onClick: (_ev: any, els: any[]) => {
         if (!els.length) return;
-        const clickedMod = modOrder[els[0].index];
+        const clickedMod = activeModOrder[els[0].index];
         if (!clickedMod) return;
-        state.modalidade = state.modalidade === clickedMod ? 'ALL' : clickedMod;
-        const selMod = getEl<HTMLSelectElement>('filterModalidade');
-        if (selMod) selMod.value = state.modalidade;
+        if (state.modalidades.length === 1 && state.modalidades[0] === clickedMod) {
+          state.modalidades = [];
+        } else {
+          state.modalidades = [clickedMod];
+        }
+        syncModMultiUI();
         scheduleRefreshAll();
       },
       plugins: {
@@ -1403,7 +1605,7 @@ function renderCharts(forceStatic = false): void {
   ];
   const faixaAgg = faixas.map(f =>
     DB.demografia_faixa_etaria
-      .filter(r => r.faixa_etaria === f && (state.modalidade === 'ALL' || r.modalidade === state.modalidade))
+      .filter(r => r.faixa_etaria === f && isModSelected(r.modalidade))
       .reduce((acc, r) => acc + r.qtd_apr, 0)
   );
   createOrUpdateChart('chartFaixaEtaria', {
@@ -1434,12 +1636,12 @@ function renderCharts(forceStatic = false): void {
   const racas = ['Branca', 'Parda', 'Preta', 'Amarela', 'Indígena', 'Sem Informação'];
   const mascRaca = racas.map(rc =>
     DB.demografia_raca_sexo
-      .filter(r => r.raca_cor === rc && r.sexo === 'Masculino' && (state.modalidade === 'ALL' || r.modalidade === state.modalidade))
+      .filter(r => r.raca_cor === rc && r.sexo === 'Masculino' && isModSelected(r.modalidade))
       .reduce((acc, r) => acc + r.faturamentos, 0)
   );
   const femRaca = racas.map(rc =>
     DB.demografia_raca_sexo
-      .filter(r => r.raca_cor === rc && r.sexo === 'Feminino' && (state.modalidade === 'ALL' || r.modalidade === state.modalidade))
+      .filter(r => r.raca_cor === rc && r.sexo === 'Feminino' && isModSelected(r.modalidade))
       .reduce((acc, r) => acc + r.faturamentos, 0)
   );
   createOrUpdateChart('chartRacaSexo', {
@@ -2133,9 +2335,55 @@ function bindEvents(): void {
     renderCharts();
   });
 
-  getEl<HTMLSelectElement>('filterModalidade')?.addEventListener('change', e => {
-    state.modalidade = (e.target as HTMLSelectElement).value as 'ALL' | ModalidadeISO9999;
+  // Multi-select Checkbox Dropdown (Linha de Cuidado)
+  const modWrap = getEl('modMultiWrap');
+  const modBtn = getEl('btnModMultiToggle');
+  const modDropdown = getEl('modMultiDropdown');
+  const chkModAll = getEl<HTMLInputElement>('chkModAll');
+  const modItemChecks = Array.from(document.querySelectorAll<HTMLInputElement>('.chk-mod-item'));
+
+  modBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = modDropdown?.classList.toggle('open') || false;
+    modBtn.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  document.addEventListener('click', e => {
+    if (modWrap && !modWrap.contains(e.target as Node)) {
+      modDropdown?.classList.remove('open');
+      modBtn?.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  chkModAll?.addEventListener('change', () => {
+    if (chkModAll.checked) {
+      state.modalidades = [];
+    } else {
+      // Se desmarcar "Todas", mantém pelo menos a primeira para não zerar tudo sem querer
+      state.modalidades = ['TA04'];
+    }
+    syncModMultiUI();
     refreshAll();
+  });
+
+  modItemChecks.forEach(chk => {
+    chk.addEventListener('change', () => {
+      const checkedVals = modItemChecks
+        .filter(c => c.checked)
+        .map(c => c.value as ModalidadeISO9999);
+      if (checkedVals.length === 0 || checkedVals.length === ALL_MODALIDADES.length) {
+        state.modalidades = [];
+      } else {
+        state.modalidades = checkedVals;
+      }
+      syncModMultiUI();
+      refreshAll();
+    });
+  });
+
+  getEl<HTMLSelectElement>('selectEquipChartGroup')?.addEventListener('change', e => {
+    state.equipChartGroup = (e.target as HTMLSelectElement).value as 'categoria' | 'ano' | 'regiao';
+    renderCharts();
   });
 
   getEl('btnResetFilters')?.addEventListener('click', () => {
@@ -2144,15 +2392,14 @@ function bindEvents(): void {
     state.uf = 'ALL';
     state.municipioCod = '';
     state.municipioNome = '';
-    state.modalidade = 'ALL';
+    state.modalidades = [];
     const fAno = getEl<HTMLSelectElement>('filterAno');
     const fMac = getEl<HTMLSelectElement>('filterMacro');
     const fMun = getEl<HTMLInputElement>('filterMunicipio');
-    const fMod = getEl<HTMLSelectElement>('filterModalidade');
     if (fAno) fAno.value = 'ALL';
     if (fMac) fMac.value = 'ALL';
     if (fMun) fMun.value = '';
-    if (fMod) fMod.value = 'ALL';
+    syncModMultiUI();
     populateUfSelector();
     populateMunicipioDatalist();
     odMapController.selectState('ALL', true);
@@ -2310,7 +2557,8 @@ function bindEvents(): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cubo_ta_sus_2022_2024_${state.ano}_${state.uf}_${state.modalidade}.csv`;
+    const modTag = state.modalidades.length === 0 ? 'ALL' : state.modalidades.join('-');
+    a.download = `cubo_ta_sus_2022_2024_${state.ano}_${state.uf}_${modTag}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   });
