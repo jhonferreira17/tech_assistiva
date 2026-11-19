@@ -794,6 +794,12 @@ body {
   animation: dashFlow 1.8s linear infinite;
 }
 
+.od-arrow-icon {
+  background: transparent;
+  border: none;
+  pointer-events: none;
+}
+
 @keyframes dashFlow {
   to {
     stroke-dashoffset: -26;
