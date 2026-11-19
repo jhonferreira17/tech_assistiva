@@ -58,8 +58,19 @@ let staticTablesRendered = false;
 let staticChartsRendered = false;
 let sigtapExcluidosRendered = false;
 
+function cloneChartConfig(val: any): any {
+  if (val === null || typeof val !== 'object') return val;
+  if (Array.isArray(val)) return val.map(cloneChartConfig);
+  const copy: Record<string, any> = {};
+  for (const key of Object.keys(val)) {
+    copy[key] = cloneChartConfig(val[key]);
+  }
+  return copy;
+}
+
 function isCanvasVisible(el: HTMLCanvasElement): boolean {
-  return el.offsetParent !== null && el.clientWidth > 0 && el.clientHeight > 0;
+  const rect = el.getBoundingClientRect();
+  return el.offsetParent !== null && rect.width > 0 && rect.height > 0;
 }
 
 function mountVisibleChartsIn(container: HTMLElement | null): void {
@@ -71,17 +82,20 @@ function mountVisibleChartsIn(container: HTMLElement | null): void {
     if (!cfg || !isCanvasVisible(canvas)) return;
 
     if (charts[id]) {
-      if (canvas.width === 0 || canvas.height === 0) {
-        charts[id].destroy();
-        charts[id] = new Chart(canvas, cfg);
-      } else {
-        charts[id].resize();
-        charts[id].update('none');
-      }
-    } else {
-      charts[id] = new Chart(canvas, cfg);
+      charts[id].destroy();
+      delete charts[id];
     }
+    charts[id] = new Chart(canvas, cloneChartConfig(cfg));
   });
+}
+
+let refreshTimerId: number | null = null;
+function scheduleRefreshAll(): void {
+  if (refreshTimerId !== null) window.clearTimeout(refreshTimerId);
+  refreshTimerId = window.setTimeout(() => {
+    refreshTimerId = null;
+    refreshAll();
+  }, 0);
 }
 
 function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: number): T {
@@ -946,7 +960,7 @@ function renderCharts(forceStatic = false): void {
     }
     const ctx = getEl<HTMLCanvasElement>(id);
     if (ctx && isCanvasVisible(ctx)) {
-      charts[id] = new Chart(ctx, config);
+      charts[id] = new Chart(ctx, cloneChartConfig(config));
     }
   }
 
@@ -1002,7 +1016,7 @@ function renderCharts(forceStatic = false): void {
         state.ano = state.ano === clickedAno ? 'ALL' : clickedAno;
         const selAno = getEl<HTMLSelectElement>('filterAno');
         if (selAno) selAno.value = state.ano;
-        refreshAll();
+        scheduleRefreshAll();
       },
       plugins: {
         tooltip: {
@@ -1091,7 +1105,7 @@ function renderCharts(forceStatic = false): void {
         state.modalidade = state.modalidade === clickedMod ? 'ALL' : clickedMod;
         const selMod = getEl<HTMLSelectElement>('filterModalidade');
         if (selMod) selMod.value = state.modalidade;
-        refreshAll();
+        scheduleRefreshAll();
       },
       plugins: {
         tooltip: {
@@ -1471,7 +1485,7 @@ function renderCharts(forceStatic = false): void {
         state.macro = state.macro === clickedMacro ? 'ALL' : clickedMacro;
         const selMacro = getEl<HTMLSelectElement>('filterMacro');
         if (selMacro) selMacro.value = state.macro;
-        refreshAll();
+        scheduleRefreshAll();
       },
       plugins: {
         tooltip: {
@@ -1589,7 +1603,7 @@ function renderCharts(forceStatic = false): void {
       const inputMun = getEl<HTMLInputElement>('filterMunicipio');
       if (inputMun) inputMun.value = '';
       populateMunicipioDatalist();
-      refreshAll();
+      scheduleRefreshAll();
     } else if (item.codMun) {
       state.municipioCod = item.codMun;
       state.municipioNome = item.nomeMun || '';
@@ -1599,7 +1613,7 @@ function renderCharts(forceStatic = false): void {
       const inputMun = getEl<HTMLInputElement>('filterMunicipio');
       if (inputMun) inputMun.value = `${item.nomeMun} (${item.uf})`;
       populateMunicipioDatalist();
-      refreshAll();
+      scheduleRefreshAll();
     }
   };
 
