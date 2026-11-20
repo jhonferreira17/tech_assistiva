@@ -5,6 +5,27 @@
  */
 
 import Chart from 'chart.js/auto';
+import {
+  createIcons,
+  LayoutDashboard,
+  Trophy,
+  Map as LucideMap,
+  Building2,
+  Route,
+  Users,
+  Accessibility,
+  Database,
+  Code2,
+  Moon,
+  Sun,
+  MapPin,
+  Download,
+  FileJson,
+  Globe,
+  Ship,
+  Play,
+  ExternalLink
+} from 'lucide';
 import { MapaOrigemDestinoController } from './components/mapaOrigemDestino';
 import type {
   BaseDadosObservatorioTASUS,
@@ -429,7 +450,10 @@ function renderMunicipioSummaryBar(): void {
   bar.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <div>
-        <strong style="font-size:13.5px;color:var(--text-main);">📍 ${nome} (${uf})</strong>
+        <strong style="font-size:13.5px;color:var(--text-main);display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${nome} (${uf})
+        </strong>
         <span style="margin-left:8px;color:var(--text-muted);font-size:12px;">Região: ${rs} • Pop. PcD (2022): <strong>${fmtInt.format(pcd)}</strong></span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);">
@@ -437,7 +461,10 @@ function renderMunicipioSummaryBar(): void {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <button class="btn" id="btnFocusMunOnMap" style="padding:5px 10px;font-size:12px;border-color:var(--primary);color:var(--primary);">🗺️ Ver no Mapa</button>
+      <button class="btn" id="btnFocusMunOnMap" style="padding:5px 10px;font-size:12px;border-color:var(--primary);color:var(--primary);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
+        Ver no Mapa
+      </button>
       <button class="btn" id="btnClearMunOnly" style="padding:5px 10px;font-size:12px;">✕ Limpar Município</button>
     </div>
   `;
@@ -2534,6 +2561,12 @@ function bindEvents(): void {
       btn.setAttribute('aria-selected', 'true');
       const targetId = btn.getAttribute('data-tab');
       if (targetId) {
+        const isDevTab = targetId === 'tab-desenvolvedores';
+        const kpiStrip = getEl('globalKpiGrid');
+        const muniBar = getEl('muniSelectedBar');
+        if (kpiStrip) kpiStrip.style.display = isDevTab ? 'none' : '';
+        if (muniBar) muniBar.style.display = isDevTab ? 'none' : '';
+
         const target = getEl(targetId);
         if (target) {
           target.classList.add('active');
@@ -3004,6 +3037,30 @@ function bindEvents(): void {
     URL.revokeObjectURL(url);
   });
 }
+
+// Renderiza ícones vetoriais profissionais (Lucide Icons)
+createIcons({
+  icons: {
+    LayoutDashboard,
+    Trophy,
+    Map: LucideMap,
+    Building2,
+    Route,
+    Users,
+    Accessibility,
+    Database,
+    Code2,
+    Moon,
+    Sun,
+    MapPin,
+    Download,
+    FileJson,
+    Globe,
+    Ship,
+    Play,
+    ExternalLink
+  }
+});
 
 // Initialize TypeScript App (Mapa inicializado sob demanda ao abrir a aba para boot instantâneo)
 initSelectors();

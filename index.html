@@ -34,51 +34,65 @@
         <div class="nav-section-label">Monitoramento</div>
         <nav class="sidebar-nav" role="tablist">
           <button class="nav-tab active" data-tab="tab-painel" role="tab" aria-selected="true">
-            <span class="tab-step">📊</span>
+            <span class="tab-step"><i data-lucide="layout-dashboard" class="ui-icon"></i></span>
             <span>Painel Geral</span>
           </button>
           <button class="nav-tab" data-tab="tab-ranking" role="tab" aria-selected="false">
-            <span class="tab-step">🏆</span>
+            <span class="tab-step"><i data-lucide="trophy" class="ui-icon"></i></span>
             <span>Ranking (Top 10)</span>
           </button>
           <button class="nav-tab" data-tab="tab-territorio" role="tab" aria-selected="false">
-            <span class="tab-step">🗺️</span>
+            <span class="tab-step"><i data-lucide="map" class="ui-icon"></i></span>
             <span>Mapa &amp; Cobertura</span>
           </button>
           <button class="nav-tab" data-tab="tab-rede" role="tab" aria-selected="false">
-            <span class="tab-step">🏥</span>
+            <span class="tab-step"><i data-lucide="building-2" class="ui-icon"></i></span>
             <span>Rede de Serviços (CNES)</span>
           </button>
           <button class="nav-tab" data-tab="tab-fluxos" role="tab" aria-selected="false">
-            <span class="tab-step">🧭</span>
+            <span class="tab-step"><i data-lucide="route" class="ui-icon"></i></span>
             <span>Deslocamento de Pacientes</span>
           </button>
           <button class="nav-tab" data-tab="tab-perfil" role="tab" aria-selected="false">
-            <span class="tab-step">👥</span>
+            <span class="tab-step"><i data-lucide="users" class="ui-icon"></i></span>
             <span>Pacientes &amp; Equipes</span>
           </button>
 
           <div class="nav-section-label">Consultas &amp; Dados</div>
           <button class="nav-tab" data-tab="tab-catalogo" role="tab" aria-selected="false">
-            <span class="tab-step">🦽</span>
+            <span class="tab-step"><i data-lucide="accessibility" class="ui-icon"></i></span>
             <span>Catálogo de Tecnologias</span>
           </button>
           <button class="nav-tab" data-tab="tab-auditoria" role="tab" aria-selected="false">
-            <span class="tab-step">🗄️</span>
+            <span class="tab-step"><i data-lucide="database" class="ui-icon"></i></span>
             <span>Base de Dados &amp; Qualidade</span>
           </button>
         </nav>
       </div>
 
-      <div class="sidebar-footer">
-        <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
-        <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
-            rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
-        <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
-          35 arquivos • 972 partições Parquet • 5.570 municípios
+      <div class="sidebar-bottom-stack">
+        <div class="sidebar-partners" aria-label="Instituições e Laboratórios Parceiros">
+          <div class="sidebar-partners-label">Realização &amp; Parceiros</div>
+          <div class="sidebar-logos-grid">
+            <div class="sidebar-logo-chip" title="Universidade Federal do Rio de Janeiro (UFRJ)">
+              <img src="/logos/ufrj.png" alt="UFRJ" loading="lazy" />
+            </div>
+            <div class="sidebar-logo-chip" title="Universidade Federal do Amazonas (UFAM)">
+              <img src="/logos/ufam.png" alt="UFAM" loading="lazy" />
+            </div>
+            <div class="sidebar-logo-chip" title="LAMAPP">
+              <img src="/logos/lamapp.svg" alt="LAMAPP" loading="lazy" />
+            </div>
+            <div class="sidebar-logo-chip" title="NuPeC — Núcleo de Pesquisa em Ciências de Dados e Otimização">
+              <img src="/logos/nupec.svg" alt="NuPeC" loading="lazy" />
+            </div>
+          </div>
         </div>
-        <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
-          <span>🌓 Tema Claro / Escuro</span>
+
+        <button class="nav-tab" data-tab="tab-desenvolvedores" role="tab" aria-selected="false"
+          style="width:100%;border:1px solid var(--border-light);background:var(--bg-card);">
+          <span class="tab-step"><i data-lucide="code-2" class="ui-icon"></i></span>
+          <span>Desenvolvedores</span>
         </button>
       </div>
     </aside>
@@ -175,14 +189,22 @@
 
         <div class="topbar-actions">
           <button class="btn" id="btnQuickOpenMap" style="border-color:var(--primary);color:var(--primary);">
-            <span>🗺️ Mapa &amp; Calor</span>
+            <i data-lucide="map-pin" class="ui-icon"></i>
+            <span>Mapa &amp; Calor</span>
           </button>
           <button class="btn" id="btnExportCurrentCSV" title="Baixar dados filtrados em planilha CSV">
-            <span>📥 CSV</span>
+            <i data-lucide="download" class="ui-icon"></i>
+            <span>CSV</span>
           </button>
           <a href="/data/dados_ta_sus_2022_2024.json" download="dados_ta_sus_2022_2024.json" class="btn btn-primary">
-            <span>📦 JSON</span>
+            <i data-lucide="file-json" class="ui-icon"></i>
+            <span>JSON</span>
           </a>
+          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button"
+            title="Alternar tema claro / escuro" aria-label="Alternar tema claro / escuro">
+            <i data-lucide="moon" class="ui-icon theme-icon-moon"></i>
+            <i data-lucide="sun" class="ui-icon theme-icon-sun"></i>
+          </button>
         </div>
       </header>
 
@@ -194,7 +216,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span>Equipamentos Entregues</span>
-              <span class="tag tag-prod">Produtos Físicos</span>
+              <span class="tag tag-prod">Produtos</span>
             </div>
             <div class="kpi-value" id="kpiProdQtd">2.167.191</div>
             <div class="kpi-footer" id="kpiProdSub">R$ 1.215.793.168,40 (95,7% do orçamento)</div>
@@ -202,8 +224,8 @@
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span>Atendimentos de Adaptação</span>
-              <span class="tag tag-proc">Acompanhamento</span>
+              <span>Atendimentos Clínicos</span>
+              <span class="tag tag-proc">Adaptação</span>
             </div>
             <div class="kpi-value" id="kpiProcQtd">330.358</div>
             <div class="kpi-footer" id="kpiProcSub">Avaliação, moldagem, ajustes e manutenção</div>
@@ -211,7 +233,7 @@
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span>Índice de Acompanhamento</span>
+              <span>Acompanhamento</span>
               <span class="tag tag-zero">Adaptação / Entrega</span>
             </div>
             <div class="kpi-value" id="kpiRI">0,1524</div>
@@ -220,7 +242,7 @@
 
           <div class="kpi-card">
             <div class="kpi-header">
-              <span>Investimento SUS Aprovado</span>
+              <span>Investimento SUS</span>
               <span class="tag tag-ok" id="kpiGlosa">Glosa: 2,18% / 1,13%</span>
             </div>
             <div class="kpi-value" id="kpiValTotal">R$ 1,27 bi</div>
@@ -260,7 +282,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title" id="equipChartTitle">Equipamentos Entregues</h3>
-                  <p class="card-subtitle" id="equipChartSubtitle">Distribuição de equipamentos físicos aprovados no SUS • Clique para filtrar</p>
+                  <p class="card-subtitle" id="equipChartSubtitle">Distribuição de equipamentos físicos aprovados no SUS
+                    • Clique para filtrar</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                   <div class="filter-item" id="equipMetricWrap">
@@ -271,7 +294,8 @@
                         <span id="equipMetricLabel">Produtos (un.)</span>
                         <span class="mod-multi-caret">▾</span>
                       </button>
-                      <div id="equipMetricDropdown" class="mod-multi-dropdown" role="listbox" aria-multiselectable="true">
+                      <div id="equipMetricDropdown" class="mod-multi-dropdown" role="listbox"
+                        aria-multiselectable="true">
                         <label class="mod-check-item">
                           <input type="checkbox" class="chk-equip-metric" value="equipamentos" checked />
                           <span>Produtos (un.)</span>
@@ -312,7 +336,8 @@
               <div class="chart-box" id="equipChartBox" style="height:340px;">
                 <canvas id="chartEquipamentosEntregues"></canvas>
               </div>
-              <div class="table-responsive" style="margin-top:18px;border-top:1px solid var(--border-light);padding-top:14px;">
+              <div class="table-responsive"
+                style="margin-top:18px;border-top:1px solid var(--border-light);padding-top:14px;">
                 <table class="sci-table" id="tableEquipResumo">
                   <thead>
                     <tr>
@@ -334,7 +359,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Evolução Mensal de Entregas e Atendimentos</h3>
-                  <p class="card-subtitle">Série histórica de 36 meses (Janeiro/2022 a Dezembro/2024) • Clique em um mês para filtrar o ano</p>
+                  <p class="card-subtitle">Série histórica de 36 meses (Janeiro/2022 a Dezembro/2024) • Clique em um mês
+                    para filtrar o ano</p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -346,7 +372,8 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">Equipamentos vs. Adaptação por Linha de Cuidado</h3>
-                  <p class="card-subtitle">Volume entregue e acompanhamento clínico • Clique em uma barra para filtrar</p>
+                  <p class="card-subtitle">Volume entregue e acompanhamento clínico • Clique em uma barra para filtrar
+                  </p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -444,7 +471,8 @@
           <div class="chapter-header">
             <div>
               <h2>10 Melhores e 10 Piores por Localidade</h2>
-              <p id="top10Subtitle">Comparativo de desempenho assistencial por estado ou município polo • Clique em qualquer barra para filtrar</p>
+              <p id="top10Subtitle">Comparativo de desempenho assistencial por estado ou município polo • Clique em
+                qualquer barra para filtrar</p>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
               <div class="filter-item">
@@ -580,7 +608,10 @@
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <button class="btn" id="btnMapResetBrazil">🌎 Brasil Inteiro</button>
+                  <button class="btn" id="btnMapResetBrazil">
+                    <i data-lucide="globe" class="ui-icon"></i>
+                    <span>Brasil Inteiro</span>
+                  </button>
                 </div>
               </div>
 
@@ -608,6 +639,11 @@
                     <span class="od-legend-item">
                       <span class="legend-line" style="background:#e11d48;"></span>
                       &gt; 250 km
+                    </span>
+                    <span class="od-legend-item">
+                      <span class="legend-line" style="background:#0891b2;"></span>
+                      <i data-lucide="ship" class="ui-icon" style="color:#0891b2;width:14px;height:14px;"></i>
+                      Hidrovia (Barco/Lancha)
                     </span>
                     <span class="od-legend-item">
                       <span
@@ -677,7 +713,7 @@
                     aos seus próprios moradores</p>
                 </div>
                 <input type="text" id="inputSearchPoloMun" class="filter-input"
-                  placeholder="🔎 Buscar município ou Região de Saúde..." style="min-width:260px;" />
+                  placeholder="Buscar município ou Região de Saúde..." style="min-width:260px;" />
               </div>
               <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
                 <table class="sci-table" id="tablePolosMunicipaisRDS">
@@ -1286,7 +1322,7 @@
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
                   <input type="text" id="inputSearchSigtap" class="filter-input"
-                    placeholder="🔎 Buscar por código ou nome do equipamento..." style="min-width:260px;" />
+                    placeholder="Buscar por código ou nome do equipamento..." style="min-width:260px;" />
                   <select id="selectTipoSigtap" class="filter-select">
                     <option value="ALL">Todos os Itens (167)</option>
                     <option value="Produto">Apenas Equipamentos (131)</option>
@@ -1370,13 +1406,17 @@
                 <div>
                   <h3 class="card-title">Consulta SQL Direta na Base Parquet (DuckDB + Node.js/TypeScript)</h3>
                   <p class="card-subtitle">Execute consultas personalizadas sobre os 2.089.337 registros usando a tabela
-                    <code>sia_ta_parquet</code></p>
+                    <code>sia_ta_parquet</code>
+                  </p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn" id="btnSqlPreset1">Exemplo 1: Resumo por Ano</button>
                   <button class="btn" id="btnSqlPreset2">Exemplo 2: Top 15 CID-10</button>
                   <button class="btn" id="btnSqlPreset3">Exemplo 3: Procedimentos Tarifa Zero</button>
-                  <button class="btn btn-primary" id="btnRunDuckDB">▶ Executar Consulta</button>
+                  <button class="btn btn-primary" id="btnRunDuckDB">
+                    <i data-lucide="play" class="ui-icon"></i>
+                    <span>Executar Consulta</span>
+                  </button>
                 </div>
               </div>
               <textarea id="textareaDuckDBSql" class="code-pre"
@@ -1398,7 +1438,8 @@ ORDER BY ano, tipo_registro;</textarea>
                 <div>
                   <h3 class="card-title">Arquivos da Base de Dados Sincronizados do Zenodo (35 arquivos)</h3>
                   <p class="card-subtitle">Repositório oficial DOI: 10.5281/zenodo.24225551 • Armazenados localmente em
-                    <code>dados_zenodo/</code></p>
+                    <code>dados_zenodo/</code>
+                  </p>
                 </div>
                 <span class="tag tag-ok">35 Arquivos Sincronizados</span>
               </div>
@@ -1599,6 +1640,195 @@ ORDER BY ano, tipo_registro;</textarea>
                   <tbody></tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 8 — DESENVOLVEDORES & EQUIPE DO PROJETO
+             ================================================================= -->
+        <section id="tab-desenvolvedores" class="tab-panel" role="tabpanel">
+          <div class="chapter-header">
+            <div>
+              <h2>Desenvolvedores &amp; Equipe do Projeto</h2>
+              <p>Responsáveis pelo desenvolvimento da plataforma ORBITA, coordenação científica, cooperação
+                institucional e tecnologias empregadas.</p>
+            </div>
+            <a href="https://github.com/jhonferreira17/tech_assistiva" target="_blank" rel="noopener noreferrer"
+              class="btn btn-primary">
+              <i data-lucide="external-link" class="ui-icon"></i>
+              <span>Repositório no GitHub</span>
+            </a>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Engenharia &amp; Desenvolvimento</h3>
+                  <p class="card-subtitle">Arquitetura web, visualização de dados, geoprocessamento e deploy</p>
+                </div>
+                <span class="tag tag-prod">ORBITA Web</span>
+              </div>
+              <div class="clean-list">
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Jonata Barbosa</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Desenvolvimento Full-Stack • Interface, Gráficos Interativos, Mapa OpenStreetMap &amp; Hidrovia
+                      Amazônica
+                    </div>
+                  </div>
+                  <a href="https://github.com/jhonferreira17" target="_blank" rel="noopener noreferrer" class="btn"
+                    style="padding:5px 10px;font-size:12px;white-space:nowrap;">
+                    @jhonferreira17 ↗
+                  </a>
+                </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Base Sincronizada (Zenodo)</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      35 arquivos • 972 partições Parquet • 5.570 municípios
+                    </div>
+                  </div>
+                  <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer"
+                    class="btn" style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
+                    10.5281/zenodo.24225551 ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Fomento, Cooperação &amp; Licença</h3>
+                  <p class="card-subtitle">Apoio institucional e governança aberta de dados em saúde</p>
+                </div>
+                <span class="tag tag-ok">CC-BY 4.0</span>
+              </div>
+              <div class="clean-list">
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Cooperação Acadêmica</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Acordo de Cooperação Acadêmica DINTER COPPE/UFRJ – UFAM
+                    </div>
+                  </div>
+                </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Fomento Científico</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      PPSUS • DECIT/SECTICS/MS • CNPq • FAPERJ • FAPEAM
+                    </div>
+                  </div>
+                </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Base Oficial &amp; Padrões</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      Zenodo DOI <code>10.5281/zenodo.24225551</code> • RECORD • GATHER • CIF/OMS • ISO 9999
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Coordenação &amp; Equipe Científica (PPSUS / UFRJ–UFAM)</h3>
+                <p class="card-subtitle">Pesquisadores responsáveis pela curadoria da base censitária SIA/SUS
+                  (2022–2024)</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="sci-table">
+                <thead>
+                  <tr>
+                    <th>Pesquisador(a)</th>
+                    <th>Instituição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Profa. Dra. Carolina Maria do Carmo Alonso</strong></td>
+                    <td>UFRJ — Faculdade de Medicina / COPPE</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Prof. Dr. Hidelbrando Ferreira Rodrigues</strong></td>
+                    <td>UFAM — Instituto de Ciências Exatas e Tecnologia (ICET)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Instituições &amp; Laboratórios Parceiros</h3>
+                <p class="card-subtitle">Universidades e laboratórios envolvidos na pesquisa e desenvolvimento da plataforma</p>
+              </div>
+            </div>
+            <div class="dev-logos-grid">
+              <div class="dev-logo-tile">
+                <div class="dev-logo-frame">
+                  <img src="/logos/ufrj.png" alt="Logo da Universidade Federal do Rio de Janeiro (UFRJ)" loading="lazy" />
+                </div>
+                <div class="dev-logo-caption">
+                  <strong>UFRJ</strong>
+                  <span>Universidade Federal do Rio de Janeiro</span>
+                </div>
+              </div>
+              <div class="dev-logo-tile">
+                <div class="dev-logo-frame">
+                  <img src="/logos/ufam.png" alt="Logo da Universidade Federal do Amazonas (UFAM)" loading="lazy" />
+                </div>
+                <div class="dev-logo-caption">
+                  <strong>UFAM</strong>
+                  <span>Universidade Federal do Amazonas</span>
+                </div>
+              </div>
+              <div class="dev-logo-tile">
+                <div class="dev-logo-frame">
+                  <img src="/logos/lamapp.svg" alt="Logo do LAMAPP" loading="lazy" />
+                </div>
+                <div class="dev-logo-caption">
+                  <strong>LAMAPP</strong>
+                  <span>Laboratório de Monitoramento e Avaliação de Políticas Públicas</span>
+                </div>
+              </div>
+              <div class="dev-logo-tile">
+                <div class="dev-logo-frame">
+                  <img src="/logos/nupec.svg" alt="Logo do NUPEC" loading="lazy" />
+                </div>
+                <div class="dev-logo-caption">
+                  <strong>NuPeC</strong>
+                  <span>Núcleo de Pesquisa em Ciências de Dados e Otimização</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Stack Tecnológica &amp; Fontes Abertas</h3>
+                <p class="card-subtitle">Arquitetura 100% baseada em tecnologias abertas e gratuitas</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag tag-prod">TypeScript 5</span>
+              <span class="tag tag-prod">Vite 6</span>
+              <span class="tag tag-proc">Chart.js 4</span>
+              <span class="tag tag-ok">Leaflet + OpenStreetMap</span>
+              <span class="tag tag-ok">Malhas &amp; Sedes IBGE</span>
+              <span class="tag tag-ok">Rotas OSRM + Hidrovia Amazônica</span>
+              <span class="tag tag-zero">DuckDB + Apache Parquet (972 partições)</span>
+              <span class="tag tag-prod">Node.js Serverless (Vercel)</span>
             </div>
           </div>
         </section>

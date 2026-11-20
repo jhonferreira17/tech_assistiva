@@ -4,6 +4,7 @@
  */
 
 import L from 'leaflet';
+import { computeFluvialRoute, type FluvialRouteResult } from '../utils/hidroviaAmazonica';
 
 export interface RotaOD {
   c_orig: string;
@@ -827,33 +828,74 @@ export class MapaOrigemDestinoController {
     this.renderRouteDetailCard(r, { loading: true });
     this.osrmRoadLayer.clearLayers();
 
+    let roadKm: number | undefined;
+    let durationStr: string | undefined;
+    let roadGeoLayer: L.GeoJSON | null = null;
+
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${r.lon_o},${r.lat_o};${r.lon_d},${r.lat_d}?overview=full&geometries=geojson`;
       const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const roadKm = route.distance / 1000.0;
-        const durationStr = formatDurationSeconds(route.duration);
-
-        const roadGeo = L.geoJSON(route.geometry, {
-          style: { color: '#4f46e5', weight: 4.2, opacity: 0.95 }
-        });
-        roadGeo.bindTooltip(
-          `<strong>Rota Rodoviária:</strong> ${fmtDec1.format(roadKm)} km (~${durationStr})`,
-          { sticky: true }
-        );
-        this.osrmRoadLayer.addLayer(roadGeo);
-
-        this.renderRouteDetailCard(r, { loading: false, roadKm, durationStr });
-        return;
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          roadKm = route.distance / 1000.0;
+          durationStr = formatDurationSeconds(route.duration);
+          roadGeoLayer = L.geoJSON(route.geometry, {
+            style: { color: '#4f46e5', weight: 4.0, opacity: 0.9 }
+          });
+          roadGeoLayer.bindTooltip(
+            `<strong>Rota Rodoviária:</strong> ${fmtDec1.format(roadKm)} km (~${durationStr})`,
+            { sticky: true }
+          );
+        }
       }
     } catch (_e) {
       // Sem rodovia contínua
     }
 
-    this.renderRouteDetailCard(r, { loading: false, noRoad: true });
+    const fluvial = computeFluvialRoute(
+      r.lat_o,
+      r.lon_o,
+      r.uf_orig,
+      r.lat_d,
+      r.lon_d,
+      r.uf_dest,
+      Boolean(roadGeoLayer),
+      roadKm
+    );
+
+    if (fluvial) {
+      const fluvialLine = L.polyline(fluvial.points, {
+        color: '#0891b2',
+        weight: fluvial.isPrimaryMode ? 4.6 : 3.4,
+        opacity: 0.95,
+        dashArray: '10, 6'
+      });
+      fluvialLine.bindTooltip(
+        `<div style="font-size:12px;line-height:1.45;">
+          <strong>Trajeto por Hidrovia (${fluvial.riversLabel})</strong><br/>
+          Distância fluvial: <strong>${fmtDec1.format(fluvial.fluvialKm)} km</strong><br/>
+          Barco regional: ~${fluvial.boatDurationStr} • Lancha rápida: ~${fluvial.speedboatDurationStr}
+        </div>`,
+        { sticky: true }
+      );
+      this.osrmRoadLayer.addLayer(fluvialLine);
+    }
+
+    // Só desenha a rodovia se ela existir e não for um desvio irreal frente à hidrovia principal no AM/AP
+    const showRoad = Boolean(roadGeoLayer && (!fluvial || !fluvial.isPrimaryMode || (roadKm && roadKm <= fluvial.fluvialKm * 1.65)));
+    if (showRoad && roadGeoLayer) {
+      this.osrmRoadLayer.addLayer(roadGeoLayer);
+    }
+
+    this.renderRouteDetailCard(r, {
+      loading: false,
+      roadKm: showRoad ? roadKm : undefined,
+      durationStr: showRoad ? durationStr : undefined,
+      fluvial: fluvial || undefined,
+      noRoad: !showRoad && !fluvial
+    });
   }
 
   private renderStateOverviewCard(routes: RotaOD[], nOrigens: number, nPolos: number): void {
@@ -937,7 +979,13 @@ export class MapaOrigemDestinoController {
 
   private renderRouteDetailCard(
     r: RotaOD,
-    osrmInfo?: { loading?: boolean; roadKm?: number; durationStr?: string; noRoad?: boolean }
+    osrmInfo?: {
+      loading?: boolean;
+      roadKm?: number;
+      durationStr?: string;
+      fluvial?: FluvialRouteResult;
+      noRoad?: boolean;
+    }
   ): void {
     const panel = document.getElementById('mapInspectorPanel');
     if (!panel) return;
@@ -956,19 +1004,35 @@ export class MapaOrigemDestinoController {
 
     let osrmBoxHtml = '';
     if (osrmInfo?.loading) {
-      osrmBoxHtml = `<div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;">Calculando trajeto rodoviário...</div>`;
-    } else if (osrmInfo?.roadKm && osrmInfo?.durationStr) {
-      osrmBoxHtml = `
-        <div style="font-size:12px;padding:10px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;">
-          <strong>🛣️ Trajeto por Rodovia:</strong> ${fmtDec1.format(osrmInfo.roadKm)} km (~${osrmInfo.durationStr})
-        </div>
-      `;
-    } else if (osrmInfo?.noRoad) {
-      osrmBoxHtml = `
-        <div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--amber-soft);color:var(--amber);margin-bottom:12px;">
-          <strong>⛴️ Trecho Fluvial / Aéreo:</strong> Distância linear de ${fmtDec1.format(r.dist_km)} km.
-        </div>
-      `;
+      osrmBoxHtml = `<div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;">Calculando trajeto rodoviário e hidroviário...</div>`;
+    } else {
+      if (osrmInfo?.fluvial) {
+        const fl = osrmInfo.fluvial;
+        osrmBoxHtml += `
+          <div style="font-size:12px;padding:10px 12px;border-radius:8px;background:rgba(8,145,178,0.1);border:1px solid rgba(8,145,178,0.28);color:#0e7490;margin-bottom:10px;line-height:1.5;">
+            <div style="font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg>
+              <span>Trajeto por Hidrovia ${fl.isPrimaryMode ? '(Modal Principal)' : '(Alternativa Fluvial)'}</span>
+            </div>
+            <div><strong>Corredor:</strong> ${fl.riversLabel} • <strong>${fmtDec1.format(fl.fluvialKm)} km</strong></div>
+            <div style="font-size:11.5px;margin-top:2px;">Barco regional (~16 km/h): <strong>~${fl.boatDurationStr}</strong> • Lancha rápida: <strong>~${fl.speedboatDurationStr}</strong></div>
+          </div>
+        `;
+      }
+      if (osrmInfo?.roadKm && osrmInfo?.durationStr) {
+        osrmBoxHtml += `
+          <div style="font-size:12px;padding:10px 12px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+            <span><strong>Trajeto por Rodovia:</strong> ${fmtDec1.format(osrmInfo.roadKm)} km (~${osrmInfo.durationStr})</span>
+          </div>
+        `;
+      } else if (osrmInfo?.noRoad) {
+        osrmBoxHtml += `
+          <div style="font-size:12px;padding:9px 12px;border-radius:8px;background:var(--amber-soft);color:var(--amber);margin-bottom:12px;">
+            <strong>Trecho Fluvial / Aéreo:</strong> Distância linear de ${fmtDec1.format(r.dist_km)} km (sem rodovia contínua).
+          </div>
+        `;
+      }
     }
 
     panel.innerHTML = `
