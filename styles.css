@@ -206,15 +206,25 @@ body {
 }
 
 .tab-step {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   background: var(--bg-subtle);
   color: var(--text-muted);
-  min-width: 28px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ui-icon {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.9;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .nav-tab.active .tab-step {

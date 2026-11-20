@@ -34,60 +34,61 @@
         <div class="nav-section-label">Monitoramento</div>
         <nav class="sidebar-nav" role="tablist">
           <button class="nav-tab active" data-tab="tab-painel" role="tab" aria-selected="true">
-            <span class="tab-step">📊</span>
+            <span class="tab-step"><i data-lucide="layout-dashboard" class="ui-icon"></i></span>
             <span>Painel Geral</span>
           </button>
           <button class="nav-tab" data-tab="tab-ranking" role="tab" aria-selected="false">
-            <span class="tab-step">🏆</span>
+            <span class="tab-step"><i data-lucide="trophy" class="ui-icon"></i></span>
             <span>Ranking (Top 10)</span>
           </button>
           <button class="nav-tab" data-tab="tab-territorio" role="tab" aria-selected="false">
-            <span class="tab-step">🗺️</span>
+            <span class="tab-step"><i data-lucide="map" class="ui-icon"></i></span>
             <span>Mapa &amp; Cobertura</span>
           </button>
           <button class="nav-tab" data-tab="tab-rede" role="tab" aria-selected="false">
-            <span class="tab-step">🏥</span>
+            <span class="tab-step"><i data-lucide="building-2" class="ui-icon"></i></span>
             <span>Rede de Serviços (CNES)</span>
           </button>
           <button class="nav-tab" data-tab="tab-fluxos" role="tab" aria-selected="false">
-            <span class="tab-step">🧭</span>
+            <span class="tab-step"><i data-lucide="route" class="ui-icon"></i></span>
             <span>Deslocamento de Pacientes</span>
           </button>
           <button class="nav-tab" data-tab="tab-perfil" role="tab" aria-selected="false">
-            <span class="tab-step">👥</span>
+            <span class="tab-step"><i data-lucide="users" class="ui-icon"></i></span>
             <span>Pacientes &amp; Equipes</span>
           </button>
 
           <div class="nav-section-label">Consultas &amp; Dados</div>
           <button class="nav-tab" data-tab="tab-catalogo" role="tab" aria-selected="false">
-            <span class="tab-step">🦽</span>
+            <span class="tab-step"><i data-lucide="accessibility" class="ui-icon"></i></span>
             <span>Catálogo de Tecnologias</span>
           </button>
           <button class="nav-tab" data-tab="tab-auditoria" role="tab" aria-selected="false">
-            <span class="tab-step">🗄️</span>
+            <span class="tab-step"><i data-lucide="database" class="ui-icon"></i></span>
             <span>Base de Dados &amp; Qualidade</span>
           </button>
         </nav>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
         <button class="nav-tab" data-tab="tab-desenvolvedores" role="tab" aria-selected="false"
           style="border:1px solid var(--border-light);background:var(--bg-card);">
-          <span class="tab-step">💻</span>
+          <span class="tab-step"><i data-lucide="code-2" class="ui-icon"></i></span>
           <span>Desenvolvedores</span>
         </button>
 
-        <div class="sidebar-footer">
-        <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
-        <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
-            rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
-        <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
-          35 arquivos • 972 partições Parquet • 5.570 municípios
+        <div class="sidebar-footer" style="margin-top:0;">
+          <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
+          <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
+              rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
+          <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
+            35 arquivos • 972 partições Parquet • 5.570 municípios
+          </div>
+          <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
+            <i data-lucide="contrast" class="ui-icon"></i>
+            <span>Tema Claro / Escuro</span>
+          </button>
         </div>
-        <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
-          <span>🌓 Tema Claro / Escuro</span>
-        </button>
-      </div>
       </div>
     </aside>
 
@@ -183,13 +184,16 @@
 
         <div class="topbar-actions">
           <button class="btn" id="btnQuickOpenMap" style="border-color:var(--primary);color:var(--primary);">
-            <span>🗺️ Mapa &amp; Calor</span>
+            <i data-lucide="map-pin" class="ui-icon"></i>
+            <span>Mapa &amp; Calor</span>
           </button>
           <button class="btn" id="btnExportCurrentCSV" title="Baixar dados filtrados em planilha CSV">
-            <span>📥 CSV</span>
+            <i data-lucide="download" class="ui-icon"></i>
+            <span>CSV</span>
           </button>
           <a href="/data/dados_ta_sus_2022_2024.json" download="dados_ta_sus_2022_2024.json" class="btn btn-primary">
-            <span>📦 JSON</span>
+            <i data-lucide="file-json" class="ui-icon"></i>
+            <span>JSON</span>
           </a>
         </div>
       </header>
@@ -588,7 +592,10 @@
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <button class="btn" id="btnMapResetBrazil">🌎 Brasil Inteiro</button>
+                  <button class="btn" id="btnMapResetBrazil">
+                    <i data-lucide="globe" class="ui-icon"></i>
+                    <span>Brasil Inteiro</span>
+                  </button>
                 </div>
               </div>
 
@@ -619,7 +626,8 @@
                     </span>
                     <span class="od-legend-item">
                       <span class="legend-line" style="background:#0891b2;"></span>
-                      ⛴️ Hidrovia (Barco/Lancha)
+                      <i data-lucide="ship" class="ui-icon" style="color:#0891b2;width:14px;height:14px;"></i>
+                      Hidrovia (Barco/Lancha)
                     </span>
                     <span class="od-legend-item">
                       <span
@@ -689,7 +697,7 @@
                     aos seus próprios moradores</p>
                 </div>
                 <input type="text" id="inputSearchPoloMun" class="filter-input"
-                  placeholder="🔎 Buscar município ou Região de Saúde..." style="min-width:260px;" />
+                  placeholder="Buscar município ou Região de Saúde..." style="min-width:260px;" />
               </div>
               <div class="table-responsive" style="max-height:540px;overflow-y:auto;">
                 <table class="sci-table" id="tablePolosMunicipaisRDS">
@@ -1298,7 +1306,7 @@
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
                   <input type="text" id="inputSearchSigtap" class="filter-input"
-                    placeholder="🔎 Buscar por código ou nome do equipamento..." style="min-width:260px;" />
+                    placeholder="Buscar por código ou nome do equipamento..." style="min-width:260px;" />
                   <select id="selectTipoSigtap" class="filter-select">
                     <option value="ALL">Todos os Itens (167)</option>
                     <option value="Produto">Apenas Equipamentos (131)</option>
@@ -1388,7 +1396,10 @@
                   <button class="btn" id="btnSqlPreset1">Exemplo 1: Resumo por Ano</button>
                   <button class="btn" id="btnSqlPreset2">Exemplo 2: Top 15 CID-10</button>
                   <button class="btn" id="btnSqlPreset3">Exemplo 3: Procedimentos Tarifa Zero</button>
-                  <button class="btn btn-primary" id="btnRunDuckDB">▶ Executar Consulta</button>
+                  <button class="btn btn-primary" id="btnRunDuckDB">
+                    <i data-lucide="play" class="ui-icon"></i>
+                    <span>Executar Consulta</span>
+                  </button>
                 </div>
               </div>
               <textarea id="textareaDuckDBSql" class="code-pre"
@@ -1626,7 +1637,8 @@ ORDER BY ano, tipo_registro;</textarea>
             </div>
             <a href="https://github.com/jhonferreira17/tech_assistiva" target="_blank" rel="noopener noreferrer"
               class="btn btn-primary">
-              <span>↗ Repositório no GitHub</span>
+              <i data-lucide="external-link" class="ui-icon"></i>
+              <span>Repositório no GitHub</span>
             </a>
           </div>
 
