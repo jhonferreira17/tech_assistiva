@@ -2560,6 +2560,12 @@ function bindEvents(): void {
       btn.setAttribute('aria-selected', 'true');
       const targetId = btn.getAttribute('data-tab');
       if (targetId) {
+        const isDevTab = targetId === 'tab-desenvolvedores';
+        const kpiStrip = getEl('globalKpiGrid');
+        const muniBar = getEl('muniSelectedBar');
+        if (kpiStrip) kpiStrip.style.display = isDevTab ? 'none' : '';
+        if (muniBar) muniBar.style.display = isDevTab ? 'none' : '';
+
         const target = getEl(targetId);
         if (target) {
           target.classList.add('active');
