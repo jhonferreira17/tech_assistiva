@@ -70,25 +70,12 @@
         </nav>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border-light);">
         <button class="nav-tab" data-tab="tab-desenvolvedores" role="tab" aria-selected="false"
-          style="border:1px solid var(--border-light);background:var(--bg-card);">
+          style="width:100%;border:1px solid var(--border-light);background:var(--bg-card);">
           <span class="tab-step"><i data-lucide="code-2" class="ui-icon"></i></span>
           <span>Desenvolvedores</span>
         </button>
-
-        <div class="sidebar-footer" style="margin-top:0;">
-          <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Base Sincronizada (Zenodo)</div>
-          <div>DOI: <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank"
-              rel="noopener noreferrer">10.5281/zenodo.24225551</a></div>
-          <div style="margin-top:4px;font-size:11px;color:var(--text-muted);">
-            35 arquivos • 972 partições Parquet • 5.570 municípios
-          </div>
-          <button class="btn" id="btnToggleTheme" style="width:100%;justify-content:center;margin-top:10px;">
-            <i data-lucide="contrast" class="ui-icon"></i>
-            <span>Tema Claro / Escuro</span>
-          </button>
-        </div>
       </div>
     </aside>
 
@@ -195,6 +182,11 @@
             <i data-lucide="file-json" class="ui-icon"></i>
             <span>JSON</span>
           </a>
+          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button"
+            title="Alternar tema claro / escuro" aria-label="Alternar tema claro / escuro">
+            <i data-lucide="moon" class="ui-icon theme-icon-moon"></i>
+            <i data-lucide="sun" class="ui-icon theme-icon-sun"></i>
+          </button>
         </div>
       </header>
 
@@ -1674,6 +1666,18 @@ ORDER BY ano, tipo_registro;</textarea>
                     @jhonferreira17 ↗
                   </a>
                 </div>
+                <div class="clean-list-item">
+                  <div>
+                    <strong>Base Sincronizada (Zenodo)</strong>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                      35 arquivos • 972 partições Parquet • 5.570 municípios
+                    </div>
+                  </div>
+                  <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer"
+                    class="btn" style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
+                    10.5281/zenodo.24225551 ↗
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -1776,7 +1780,7 @@ ORDER BY ano, tipo_registro;</textarea>
                 </div>
                 <div class="dev-logo-caption">
                   <strong>LAMAPP</strong>
-                  <span>Laboratório Parceiro</span>
+                  <span>Laboratório de Monitoramento e Avaliação de Políticas Públicas</span>
                 </div>
               </div>
               <div class="dev-logo-tile">

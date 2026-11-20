@@ -1110,3 +1110,25 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Compact Icon-Only Theme Action Button (Topbar) */
+.btn-theme-toggle {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.btn-theme-toggle .theme-icon-sun {
+  display: none;
+}
+
+body.dark-theme .btn-theme-toggle .theme-icon-moon {
+  display: none;
+}
+
+body.dark-theme .btn-theme-toggle .theme-icon-sun {
+  display: inline-block;
+}
