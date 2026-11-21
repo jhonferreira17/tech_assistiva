@@ -210,8 +210,8 @@
             <i data-lucide="file-json" class="ui-icon"></i>
             <span>JSON</span>
           </a>
-          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button"
-            title="Alternar tema claro / escuro" aria-label="Alternar tema claro / escuro">
+          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button" title="Alternar tema claro / escuro"
+            aria-label="Alternar tema claro / escuro">
             <i data-lucide="moon" class="ui-icon theme-icon-moon"></i>
             <i data-lucide="sun" class="ui-icon theme-icon-sun"></i>
           </button>
@@ -495,9 +495,8 @@
         <section id="tab-painel" class="tab-panel active" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Painel Geral de Entregas e Acompanhamento</h2>
-              <p>Acompanhamento mensal de equipamentos fornecidos pelo SUS, atendimentos clínicos de adaptação e
-                recursos investidos por linha de cuidado.</p>
+              <h2>Painel Geral</h2>
+              <p>Entregas, adaptações clínicas e investimento no SUS (2022–2024).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="painel-visao">Evolução &amp; Categorias</button>
@@ -509,10 +508,8 @@
           <!-- Sub-view 1.1: Charts -->
           <div id="painel-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Alerta de Monitoramento:</strong> A entrega de equipamentos cresceu <strong>22,2%</strong> entre
-              2022 e 2024 (passando de 658,7 mil para 805,1 mil unidades/ano), mas o índice de acompanhamento clínico
-              caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem
-              o respectivo retorno registrado para adaptação ou treino.
+              <strong>Tendência:</strong> Entregas cresceram <strong>+22,2%</strong> (658,7 mil → 805,1 mil/ano), mas o
+              acompanhamento clínico (RI) caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024).
             </div>
             <div class="card">
               <div class="card-header">
@@ -594,9 +591,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Evolução Mensal de Entregas e Atendimentos</h3>
-                  <p class="card-subtitle">Série histórica de 36 meses (Janeiro/2022 a Dezembro/2024) • Clique em um mês
-                    para filtrar o ano</p>
+                  <h3 class="card-title">Evolução Mensal (2022–2024)</h3>
+                  <p class="card-subtitle">36 meses • Clique em um mês para filtrar o ano</p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -607,9 +603,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Equipamentos vs. Adaptação por Linha de Cuidado</h3>
-                  <p class="card-subtitle">Volume entregue e acompanhamento clínico • Clique em uma barra para filtrar
-                  </p>
+                  <h3 class="card-title">Equipamentos vs. Adaptação</h3>
+                  <p class="card-subtitle">Por linha de cuidado • Clique na barra para filtrar</p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -623,9 +618,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Consolidado Anual de Produção, Orçamento e Cobertura</h3>
-                  <p class="card-subtitle">Equipamentos físicos e procedimentos clínicos separados conforme critério de
-                    auditoria</p>
+                  <h3 class="card-title">Consolidado Anual (2022–2024)</h3>
+                  <p class="card-subtitle">Equipamentos físicos e atos clínicos auditados</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -672,9 +666,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Entregas e Cobertura por Grupo de Equipamentos</h3>
-                  <p class="card-subtitle">Separação entre equipamentos principais de reabilitação e itens de
-                    reposição/dispensação simples, calculados sobre a população com deficiência do Censo 2022</p>
+                  <h3 class="card-title">Entregas por Grupo de Equipamentos</h3>
+                  <p class="card-subtitle">Equipamentos principais e reposição • Taxas sobre PcD (Censo 2022)</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -785,9 +778,8 @@
         <section id="tab-territorio" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Mapa Dinâmico de Origem e Destino e Cobertura por Estado</h2>
-              <p>Clique em qualquer Estado no mapa (ou nos cartões abaixo) para ver de onde os pacientes saem (moradia)
-                e para onde vão buscar o recurso assistivo (polo de atendimento).</p>
+              <h2>Mapa Origem → Destino &amp; Cobertura</h2>
+              <p>Clique em um estado ou polo para visualizar rotas de deslocamento e cobertura assistencial.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="terr-estados">Mapa Origem → Destino &amp; Estados</button>
@@ -899,9 +891,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Selecione um Estado para Focalizar o Mapa de Origem e Destino (27 UFs)</h3>
-                  <p class="card-subtitle">Ao clicar em qualquer cartão abaixo, o mapa acima dá zoom no estado e exibe
-                    todas as rotas dos pacientes</p>
+                  <h3 class="card-title">Estados (27 UFs)</h3>
+                  <p class="card-subtitle">Clique em um estado para focalizar suas rotas no mapa</p>
                 </div>
                 <span class="tag tag-prod" id="badgeUfTableYear">Consolidado</span>
               </div>
@@ -911,8 +902,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Detalhamento Estadual de Entregas, Serviços e Cobertura Populacional</h3>
-                  <p class="card-subtitle">Comparativo entre estados com base no Censo Demográfico IBGE 2022</p>
+                  <h3 class="card-title">Detalhamento por Estado</h3>
+                  <p class="card-subtitle">Entregas, serviços e cobertura populacional (Censo IBGE 2022)</p>
                 </div>
               </div>
               <div class="table-responsive" style="max-height:480px;overflow-y:auto;">
@@ -1097,9 +1088,8 @@
         <section id="tab-rede" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Rede de Serviços Habilitados (CNES, CER e Oficinas Ortopédicas)</h2>
-              <p>Acompanhamento dos 592 serviços ativos em 2024 (670 no triênio), desempenho por gestão (Pública,
-                Filantrópica e Privada) e concentração de atendimentos.</p>
+              <h2>Rede de Serviços (CNES, CER &amp; Oficinas)</h2>
+              <p>592 serviços ativos em 2024 (670 no triênio) por gestão, habilitação e concentração.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="rede-visao">Perfil da Rede &amp; Concentração</button>
@@ -1111,12 +1101,10 @@
           <!-- Sub-view 3.1: Charts -->
           <div id="rede-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Perfil de Atendimento da Rede:</strong> As instituições <strong>Filantrópicas (219
-                serviços)</strong> respondem por <strong>57,0% do valor de equipamentos</strong> e <strong>66,4% de
-                todos os atendimentos clínicos de adaptação</strong>. Já os <strong>73 prestadores Privados</strong>
-              concentram-se na entrega comercial de produtos (15,6% do orçamento) com índice mínimo de acompanhamento
-              clínico (2,4% dos atos). As <strong>8 Oficinas Ortopédicas</strong> registram o maior índice de cuidado
-              contínuo da rede (<code>0,4135</code>).
+              <strong>Perfil da Rede:</strong> Filantrópicas (<strong>219 CNES</strong>) somam <strong>57,0%</strong> do
+              valor e <strong>66,4%</strong> das adaptações; Privadas (<strong>73 CNES</strong>) têm 15,6% do valor e
+              2,4% das adaptações; <strong>8 Oficinas Ortopédicas</strong> lideram o acompanhamento
+              (<code>RI 0,4135</code>).
             </div>
             <div class="grid-3">
               <div class="card">
@@ -1254,9 +1242,8 @@
         <section id="tab-fluxos" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Deslocamento de Pacientes e Polos Regionais de Atração</h2>
-              <p>Monitoramento das viagens intermunicipais realizadas pelos pacientes para obter equipamentos e
-                acompanhamento (16.170 rotas entre municípios).</p>
+              <h2>Deslocamento de Pacientes &amp; Polos Regionais</h2>
+              <p>16.170 rotas intermunicipais para obtenção de equipamentos e acompanhamento clínico.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="fluxos-visao">Distâncias &amp; Barreiras de Acesso</button>
@@ -1268,10 +1255,9 @@
           <!-- Sub-view 4.1: Distance Charts & Regional Summary -->
           <div id="fluxos-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Deslocamento para Atendimento:</strong> No Brasil, <strong>47,4% dos equipamentos</strong> e
-              <strong>42,5% dos atendimentos clínicos</strong> exigem que o paciente viaje para outro município (sendo
-              que 30,15% cruzam limites de Região de Saúde). Na <strong>Região Norte</strong>, a distância média
-              percorrida chega a <strong>307,0 km</strong> por atendimento.
+              <strong>Deslocamento:</strong> <strong>47,4%</strong> dos equipamentos e <strong>42,5%</strong> das
+              adaptações ocorrem fora do município de moradia (<strong>30,15%</strong> cruzam Região de Saúde). No
+              <strong>Norte</strong>, a média chega a <strong>307,0 km</strong>.
             </div>
 
             <div class="grid-2">
@@ -1400,9 +1386,8 @@
         <section id="tab-perfil" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Perfil dos Pacientes Atendidos e Equipes Profissionais</h2>
-              <p>Principais causas de indicação clínica (CID-10), distribuição por faixa etária, sexo, raça/cor e
-                atuação dos profissionais de reabilitação (CBO).</p>
+              <h2>Pacientes &amp; Equipes Profissionais</h2>
+              <p>Diagnósticos (CID-10), perfil demográfico e atuação multiprofissional (CBO).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="perfil-visao">Equipes &amp; Principais Causas</button>
@@ -1414,10 +1399,9 @@
           <!-- Sub-view 5.1: CBO & CID Charts -->
           <div id="perfil-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Atuação Multiprofissional:</strong> Fisioterapeutas (<strong>601,5 mil atendimentos</strong>,
-              liderando Locomoção e Próteses) e Fonoaudiólogos (<strong>570,8 mil atendimentos</strong>, 90,3% da Saúde
-              Auditiva) respondem por <strong>56,1% de todos os registros</strong>, atuando junto a Médicos
-              Especialistas (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
+              <strong>Equipes (CBO):</strong> Fisioterapeutas (<strong>601,5 mil</strong>) e Fonoaudiólogos
+              (<strong>570,8 mil</strong>; 90,3% em Audição) somam <strong>56,1%</strong> dos registros, ao lado de
+              Médicos (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
             </div>
             <div class="grid-2">
               <div class="card">
@@ -1928,7 +1912,8 @@ ORDER BY ano, tipo_registro;</textarea>
                     </div>
                   </div>
                   <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer"
-                    class="btn" style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
+                    class="btn"
+                    style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
                     10.5281/zenodo.24225551 ↗
                   </a>
                 </div>
@@ -2006,13 +1991,15 @@ ORDER BY ano, tipo_registro;</textarea>
             <div class="card-header">
               <div>
                 <h3 class="card-title">Instituições &amp; Laboratórios Parceiros</h3>
-                <p class="card-subtitle">Universidades e laboratórios envolvidos na pesquisa e desenvolvimento da plataforma</p>
+                <p class="card-subtitle">Universidades e laboratórios envolvidos na pesquisa e desenvolvimento da
+                  plataforma</p>
               </div>
             </div>
             <div class="dev-logos-grid">
               <div class="dev-logo-tile">
                 <div class="dev-logo-frame">
-                  <img src="/logos/ufrj.png" alt="Logo da Universidade Federal do Rio de Janeiro (UFRJ)" loading="lazy" />
+                  <img src="/logos/ufrj.png" alt="Logo da Universidade Federal do Rio de Janeiro (UFRJ)"
+                    loading="lazy" />
                 </div>
                 <div class="dev-logo-caption">
                   <strong>UFRJ</strong>
