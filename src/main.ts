@@ -16,6 +16,9 @@ import {
   Accessibility,
   Database,
   Code2,
+  BookOpen,
+  FileText,
+  AtSign,
   Moon,
   Sun,
   MapPin,
@@ -2561,11 +2564,13 @@ function bindEvents(): void {
       btn.setAttribute('aria-selected', 'true');
       const targetId = btn.getAttribute('data-tab');
       if (targetId) {
-        const isDevTab = targetId === 'tab-desenvolvedores';
+        const hideKpiHeader = targetId === 'tab-desenvolvedores' || targetId === 'tab-sobre-ta';
         const kpiStrip = getEl('globalKpiGrid');
         const muniBar = getEl('muniSelectedBar');
-        if (kpiStrip) kpiStrip.style.display = isDevTab ? 'none' : '';
-        if (muniBar) muniBar.style.display = isDevTab ? 'none' : '';
+        const topbar = document.querySelector<HTMLElement>('.topbar');
+        if (kpiStrip) kpiStrip.style.display = hideKpiHeader ? 'none' : '';
+        if (muniBar) muniBar.style.display = hideKpiHeader ? 'none' : '';
+        if (topbar) topbar.classList.toggle('topbar--minimal', targetId === 'tab-sobre-ta');
 
         const target = getEl(targetId);
         if (target) {
@@ -3050,6 +3055,9 @@ createIcons({
     Accessibility,
     Database,
     Code2,
+    BookOpen,
+    FileText,
+    AtSign,
     Moon,
     Sun,
     MapPin,

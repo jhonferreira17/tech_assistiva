@@ -31,8 +31,14 @@
           </div>
         </div>
 
-        <div class="nav-section-label">Monitoramento</div>
+        <div class="nav-section-label">Apresentação</div>
         <nav class="sidebar-nav" role="tablist">
+          <button class="nav-tab" data-tab="tab-sobre-ta" role="tab" aria-selected="false">
+            <span class="tab-step"><i data-lucide="book-open" class="ui-icon"></i></span>
+            <span>O que é Tecnologia Assistiva?</span>
+          </button>
+
+          <div class="nav-section-label">Monitoramento</div>
           <button class="nav-tab active" data-tab="tab-painel" role="tab" aria-selected="true">
             <span class="tab-step"><i data-lucide="layout-dashboard" class="ui-icon"></i></span>
             <span>Painel Geral</span>
@@ -204,8 +210,8 @@
             <i data-lucide="file-json" class="ui-icon"></i>
             <span>JSON</span>
           </a>
-          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button"
-            title="Alternar tema claro / escuro" aria-label="Alternar tema claro / escuro">
+          <button class="btn btn-theme-toggle" id="btnToggleTheme" type="button" title="Alternar tema claro / escuro"
+            aria-label="Alternar tema claro / escuro">
             <i data-lucide="moon" class="ui-icon theme-icon-moon"></i>
             <i data-lucide="sun" class="ui-icon theme-icon-sun"></i>
           </button>
@@ -258,14 +264,239 @@
         <div id="muniSelectedBar" class="muni-selected-bar" aria-live="polite"></div>
 
         <!-- =================================================================
+             APRESENTAÇÃO — O QUE É TECNOLOGIA ASSISTIVA? (CARTILHA FABTA/UFRJ)
+             ================================================================= -->
+        <section id="tab-sobre-ta" class="tab-panel" role="tabpanel">
+          <!-- Hero Card com Ilustração Principal -->
+          <div class="card ta-hero-card">
+            <div class="ta-hero-copy">
+              <div class="ta-eyebrow-row">
+                <span class="tag tag-prod">Cartilha FABTA / UFRJ</span>
+                <span class="tag tag-proc">LBI • Lei nº 13.146/2015</span>
+              </div>
+              <h2 class="ta-hero-title">O que é Tecnologia Assistiva?</h2>
+              <p class="ta-hero-lead">
+                São <strong>produtos e serviços</strong> que ajudam Pessoas com Deficiência (PcD) ou mobilidade reduzida
+                a conquistarem mais <strong>autonomia e independência</strong> no dia a dia.
+              </p>
+              <div class="ta-law-note">
+                <strong>Direito garantido por lei:</strong> negar acesso à Tecnologia Assistiva ou cobrar mais caro por
+                ela configura discriminação.
+              </div>
+            </div>
+            <div class="ta-hero-media">
+              <img src="/img/ta-hero.jpg"
+                alt="Ilustração de inclusão com pessoas usando prótese, cadeira de rodas e cão-guia" loading="lazy" />
+            </div>
+          </div>
+
+          <!-- Produtos e Serviços com Ilustração -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Produtos, Serviços e Direitos</h3>
+                <p class="card-subtitle">Recursos que reduzem barreiras físicas, sensoriais e de comunicação</p>
+              </div>
+            </div>
+
+            <div class="ta-split">
+              <div class="ta-media-frame">
+                <img src="/img/ta-produtos.jpg"
+                  alt="Ilustração de produtos de Tecnologia Assistiva: cadeira de rodas, aparelho auditivo, lupa, teclado adaptado e prótese"
+                  loading="lazy" />
+              </div>
+
+              <div class="ta-mini-grid">
+                <div class="ta-mini-card">
+                  <strong>Dia a dia</strong>
+                  <p>Copos com alça, talheres adaptados e calçadores.</p>
+                </div>
+                <div class="ta-mini-card">
+                  <strong>Locomoção</strong>
+                  <p>Cadeiras de rodas, andadores, muletas e bengala branca.</p>
+                </div>
+                <div class="ta-mini-card">
+                  <strong>Órteses e Próteses</strong>
+                  <p>Órtese apoia e alivia; prótese substitui um membro.</p>
+                </div>
+                <div class="ta-mini-card">
+                  <strong>Acesso Digital</strong>
+                  <p>Teclados de alto contraste, mouses adaptados e leitores de tela.</p>
+                </div>
+                <div class="ta-mini-card">
+                  <strong>Visão</strong>
+                  <p>Lupas, ampliadores de tela e audiodescrição.</p>
+                </div>
+                <div class="ta-mini-card">
+                  <strong>Audição</strong>
+                  <p>Aparelhos auditivos, alertas luminosos e legendas/transcrição.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="ta-strip-footer">
+              <div class="ta-strip-group">
+                <span class="ta-strip-label">Serviços de TA:</span>
+                <span class="tag tag-proc">Avaliação</span>
+                <span class="tag tag-proc">Treinamento</span>
+                <span class="tag tag-proc">Manutenção</span>
+                <span class="tag tag-proc">Cão-Guia</span>
+                <span class="tag tag-proc">Libras &amp; CAA</span>
+              </div>
+              <div class="ta-strip-group">
+                <span class="ta-strip-label">Direitos garantidos:</span>
+                <span class="tag tag-ok">Ir e vir</span>
+                <span class="tag tag-ok">Informação</span>
+                <span class="tag tag-ok">Estudar e trabalhar</span>
+                <span class="tag tag-ok">Comunicar-se</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Acesso pelo SUS e Escola com Ilustração -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Como Acessar Gratuitamente pelo SUS e na Escola</h3>
+                <p class="card-subtitle">Do posto de saúde ao Centro Especializado em Reabilitação (CER)</p>
+              </div>
+              <span class="tag tag-ok">Rede Pública</span>
+            </div>
+
+            <div class="ta-split ta-split-reverse">
+              <div class="ta-steps-col">
+                <div class="ta-flow-steps">
+                  <div class="ta-step-item">
+                    <span class="ta-step-num">1</span>
+                    <div>
+                      <strong>UBS / Clínica da Família</strong>
+                      <p>Primeira consulta para relatar a necessidade e avaliação inicial.</p>
+                    </div>
+                  </div>
+                  <div class="ta-step-item">
+                    <span class="ta-step-num">2</span>
+                    <div>
+                      <strong>Encaminhamento via Regulação</strong>
+                      <p>Agendamento para o serviço especializado de referência.</p>
+                    </div>
+                  </div>
+                  <div class="ta-step-item">
+                    <span class="ta-step-num">3</span>
+                    <div>
+                      <strong>CER ou Oficina Ortopédica</strong>
+                      <p>Avaliação → Indicação → Produção e entrega → Treino → Manutenção.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ta-info-pills">
+                  <div class="ta-info-box">
+                    <strong>Na Escola (LBI)</strong>
+                    <p>Profissionais de apoio, Libras, AEE e materiais adaptados. Escolas particulares não podem cobrar
+                      taxa extra.</p>
+                  </div>
+                  <div class="ta-info-box">
+                    <strong>Novas Tecnologias (LBI 2025)</strong>
+                    <p>Ampliação no SUS para pranchas de comunicação alternativa (CAA), bengalas eletrônicas e controle
+                      ambiental.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ta-media-frame">
+                <img src="/img/ta-sus-cer.jpg"
+                  alt="Ilustração de atendimento em reabilitação no SUS com profissional ajustando equipamento assistivo"
+                  loading="lazy" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Compra e Canais de Apoio (Enxuto) -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Se Precisar Comprar</h3>
+                  <p class="card-subtitle">Benefícios fiscais e linhas facilitadas (com laudo médico e CID)</p>
+                </div>
+              </div>
+              <div class="ta-compact-list">
+                <div class="ta-compact-row">
+                  <span class="tag tag-prod">Impostos</span>
+                  <span>Isenção de IPI, ICMS, IOF e IPVA em produtos de TA e veículos adaptados.</span>
+                </div>
+                <div class="ta-compact-row">
+                  <span class="tag tag-proc">FGTS</span>
+                  <span>Saque do saldo para compra de órteses, próteses e TA (titular ou dependente PcD).</span>
+                </div>
+                <div class="ta-compact-row">
+                  <span class="tag tag-ok">Crédito</span>
+                  <span>Financiamento com juros reduzidos pelo Banco do Brasil e CAIXA.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Canais de Apoio aos Direitos</h3>
+                  <p class="card-subtitle">Atendimento gratuito em caso de negativa ou barreira</p>
+                </div>
+              </div>
+              <div class="ta-compact-list">
+                <div class="ta-compact-row">
+                  <span class="tag tag-zero">Disque 100</span>
+                  <span>Canal nacional gratuito (acessível em Libras) para orientações e denúncias.</span>
+                </div>
+                <div class="ta-compact-row">
+                  <span class="tag tag-prod">Defensoria</span>
+                  <span>Assistência jurídica gratuita e individual para garantir o acesso.</span>
+                </div>
+                <div class="ta-compact-row">
+                  <span class="tag tag-proc">MP</span>
+                  <span>Ministério Público atua na defesa coletiva e fiscalização da LBI.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA Final: Saber Mais -->
+          <div class="card ta-cta-card">
+            <div class="ta-cta-header">
+              <div>
+                <h3 class="card-title">Quer saber mais sobre Tecnologia Assistiva?</h3>
+                <p class="card-subtitle">Leia a cartilha ilustrada completa (ISBN 978-65-02-07486-2) e acompanhe o
+                  FABTA/UFRJ</p>
+              </div>
+              <div class="ta-cta-actions">
+                <a href="https://drive.google.com/file/d/1WoNERhupzZl2woptYIkeo2rAcxwYx4xX/view" target="_blank"
+                  rel="noopener noreferrer" class="btn btn-primary">
+                  <i data-lucide="file-text" class="ui-icon"></i>
+                  <span>Cartilha Completa (PDF)</span>
+                  <i data-lucide="external-link" class="ui-icon"></i>
+                </a>
+                <a href="https://www.instagram.com/fabta_ufrj/" target="_blank" rel="noopener noreferrer" class="btn">
+                  <i data-lucide="at-sign" class="ui-icon"></i>
+                  <span>@fabta_ufrj</span>
+                  <i data-lucide="external-link" class="ui-icon"></i>
+                </a>
+              </div>
+            </div>
+            <div class="ta-refs">
+              <strong>Referências:</strong> BRASIL. Lei nº 13.146/2015 (LBI) • ALONSO, C. M. C. et al. <em>Cadernos
+                Brasileiros de Terapia Ocupacional</em>, v. 34, 2026 • Cartilha FABTA/UFRJ &amp; Prefeitura de Niterói.
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
              MÓDULO 1 — PAINEL GERAL
              ================================================================= -->
         <section id="tab-painel" class="tab-panel active" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Painel Geral de Entregas e Acompanhamento</h2>
-              <p>Acompanhamento mensal de equipamentos fornecidos pelo SUS, atendimentos clínicos de adaptação e
-                recursos investidos por linha de cuidado.</p>
+              <h2>Painel Geral</h2>
+              <p>Entregas, adaptações clínicas e investimento no SUS (2022–2024).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="painel-visao">Evolução &amp; Categorias</button>
@@ -277,10 +508,8 @@
           <!-- Sub-view 1.1: Charts -->
           <div id="painel-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Alerta de Monitoramento:</strong> A entrega de equipamentos cresceu <strong>22,2%</strong> entre
-              2022 e 2024 (passando de 658,7 mil para 805,1 mil unidades/ano), mas o índice de acompanhamento clínico
-              caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024), indicando entrega de dispositivos sem
-              o respectivo retorno registrado para adaptação ou treino.
+              <strong>Tendência:</strong> Entregas cresceram <strong>+22,2%</strong> (658,7 mil → 805,1 mil/ano), mas o
+              acompanhamento clínico (RI) caiu de <code>0,1696</code> (2023) para <code>0,1373</code> (2024).
             </div>
             <div class="card">
               <div class="card-header">
@@ -362,9 +591,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Evolução Mensal de Entregas e Atendimentos</h3>
-                  <p class="card-subtitle">Série histórica de 36 meses (Janeiro/2022 a Dezembro/2024) • Clique em um mês
-                    para filtrar o ano</p>
+                  <h3 class="card-title">Evolução Mensal (2022–2024)</h3>
+                  <p class="card-subtitle">36 meses • Clique em um mês para filtrar o ano</p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -375,9 +603,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Equipamentos vs. Adaptação por Linha de Cuidado</h3>
-                  <p class="card-subtitle">Volume entregue e acompanhamento clínico • Clique em uma barra para filtrar
-                  </p>
+                  <h3 class="card-title">Equipamentos vs. Adaptação</h3>
+                  <p class="card-subtitle">Por linha de cuidado • Clique na barra para filtrar</p>
                 </div>
               </div>
               <div class="chart-box" style="height:340px;">
@@ -391,9 +618,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Consolidado Anual de Produção, Orçamento e Cobertura</h3>
-                  <p class="card-subtitle">Equipamentos físicos e procedimentos clínicos separados conforme critério de
-                    auditoria</p>
+                  <h3 class="card-title">Consolidado Anual (2022–2024)</h3>
+                  <p class="card-subtitle">Equipamentos físicos e atos clínicos auditados</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -440,9 +666,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Entregas e Cobertura por Grupo de Equipamentos</h3>
-                  <p class="card-subtitle">Separação entre equipamentos principais de reabilitação e itens de
-                    reposição/dispensação simples, calculados sobre a população com deficiência do Censo 2022</p>
+                  <h3 class="card-title">Entregas por Grupo de Equipamentos</h3>
+                  <p class="card-subtitle">Equipamentos principais e reposição • Taxas sobre PcD (Censo 2022)</p>
                 </div>
               </div>
               <div class="table-responsive">
@@ -553,9 +778,8 @@
         <section id="tab-territorio" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Mapa Dinâmico de Origem e Destino e Cobertura por Estado</h2>
-              <p>Clique em qualquer Estado no mapa (ou nos cartões abaixo) para ver de onde os pacientes saem (moradia)
-                e para onde vão buscar o recurso assistivo (polo de atendimento).</p>
+              <h2>Mapa Origem → Destino &amp; Cobertura</h2>
+              <p>Clique em um estado ou polo para visualizar rotas de deslocamento e cobertura assistencial.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="terr-estados">Mapa Origem → Destino &amp; Estados</button>
@@ -667,9 +891,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Selecione um Estado para Focalizar o Mapa de Origem e Destino (27 UFs)</h3>
-                  <p class="card-subtitle">Ao clicar em qualquer cartão abaixo, o mapa acima dá zoom no estado e exibe
-                    todas as rotas dos pacientes</p>
+                  <h3 class="card-title">Estados (27 UFs)</h3>
+                  <p class="card-subtitle">Clique em um estado para focalizar suas rotas no mapa</p>
                 </div>
                 <span class="tag tag-prod" id="badgeUfTableYear">Consolidado</span>
               </div>
@@ -679,8 +902,8 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">Detalhamento Estadual de Entregas, Serviços e Cobertura Populacional</h3>
-                  <p class="card-subtitle">Comparativo entre estados com base no Censo Demográfico IBGE 2022</p>
+                  <h3 class="card-title">Detalhamento por Estado</h3>
+                  <p class="card-subtitle">Entregas, serviços e cobertura populacional (Censo IBGE 2022)</p>
                 </div>
               </div>
               <div class="table-responsive" style="max-height:480px;overflow-y:auto;">
@@ -865,9 +1088,8 @@
         <section id="tab-rede" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Rede de Serviços Habilitados (CNES, CER e Oficinas Ortopédicas)</h2>
-              <p>Acompanhamento dos 592 serviços ativos em 2024 (670 no triênio), desempenho por gestão (Pública,
-                Filantrópica e Privada) e concentração de atendimentos.</p>
+              <h2>Rede de Serviços (CNES, CER &amp; Oficinas)</h2>
+              <p>592 serviços ativos em 2024 (670 no triênio) por gestão, habilitação e concentração.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="rede-visao">Perfil da Rede &amp; Concentração</button>
@@ -879,12 +1101,10 @@
           <!-- Sub-view 3.1: Charts -->
           <div id="rede-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Perfil de Atendimento da Rede:</strong> As instituições <strong>Filantrópicas (219
-                serviços)</strong> respondem por <strong>57,0% do valor de equipamentos</strong> e <strong>66,4% de
-                todos os atendimentos clínicos de adaptação</strong>. Já os <strong>73 prestadores Privados</strong>
-              concentram-se na entrega comercial de produtos (15,6% do orçamento) com índice mínimo de acompanhamento
-              clínico (2,4% dos atos). As <strong>8 Oficinas Ortopédicas</strong> registram o maior índice de cuidado
-              contínuo da rede (<code>0,4135</code>).
+              <strong>Perfil da Rede:</strong> Filantrópicas (<strong>219 CNES</strong>) somam <strong>57,0%</strong> do
+              valor e <strong>66,4%</strong> das adaptações; Privadas (<strong>73 CNES</strong>) têm 15,6% do valor e
+              2,4% das adaptações; <strong>8 Oficinas Ortopédicas</strong> lideram o acompanhamento
+              (<code>RI 0,4135</code>).
             </div>
             <div class="grid-3">
               <div class="card">
@@ -1022,9 +1242,8 @@
         <section id="tab-fluxos" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Deslocamento de Pacientes e Polos Regionais de Atração</h2>
-              <p>Monitoramento das viagens intermunicipais realizadas pelos pacientes para obter equipamentos e
-                acompanhamento (16.170 rotas entre municípios).</p>
+              <h2>Deslocamento de Pacientes &amp; Polos Regionais</h2>
+              <p>16.170 rotas intermunicipais para obtenção de equipamentos e acompanhamento clínico.</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="fluxos-visao">Distâncias &amp; Barreiras de Acesso</button>
@@ -1036,10 +1255,9 @@
           <!-- Sub-view 4.1: Distance Charts & Regional Summary -->
           <div id="fluxos-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Deslocamento para Atendimento:</strong> No Brasil, <strong>47,4% dos equipamentos</strong> e
-              <strong>42,5% dos atendimentos clínicos</strong> exigem que o paciente viaje para outro município (sendo
-              que 30,15% cruzam limites de Região de Saúde). Na <strong>Região Norte</strong>, a distância média
-              percorrida chega a <strong>307,0 km</strong> por atendimento.
+              <strong>Deslocamento:</strong> <strong>47,4%</strong> dos equipamentos e <strong>42,5%</strong> das
+              adaptações ocorrem fora do município de moradia (<strong>30,15%</strong> cruzam Região de Saúde). No
+              <strong>Norte</strong>, a média chega a <strong>307,0 km</strong>.
             </div>
 
             <div class="grid-2">
@@ -1168,9 +1386,8 @@
         <section id="tab-perfil" class="tab-panel" role="tabpanel">
           <div class="chapter-header">
             <div>
-              <h2>Perfil dos Pacientes Atendidos e Equipes Profissionais</h2>
-              <p>Principais causas de indicação clínica (CID-10), distribuição por faixa etária, sexo, raça/cor e
-                atuação dos profissionais de reabilitação (CBO).</p>
+              <h2>Pacientes &amp; Equipes Profissionais</h2>
+              <p>Diagnósticos (CID-10), perfil demográfico e atuação multiprofissional (CBO).</p>
             </div>
             <div class="segmented-control">
               <button class="seg-btn active" data-target="perfil-visao">Equipes &amp; Principais Causas</button>
@@ -1182,10 +1399,9 @@
           <!-- Sub-view 5.1: CBO & CID Charts -->
           <div id="perfil-visao" class="subview-panel active">
             <div class="insight-strip">
-              <strong>Atuação Multiprofissional:</strong> Fisioterapeutas (<strong>601,5 mil atendimentos</strong>,
-              liderando Locomoção e Próteses) e Fonoaudiólogos (<strong>570,8 mil atendimentos</strong>, 90,3% da Saúde
-              Auditiva) respondem por <strong>56,1% de todos os registros</strong>, atuando junto a Médicos
-              Especialistas (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
+              <strong>Equipes (CBO):</strong> Fisioterapeutas (<strong>601,5 mil</strong>) e Fonoaudiólogos
+              (<strong>570,8 mil</strong>; 90,3% em Audição) somam <strong>56,1%</strong> dos registros, ao lado de
+              Médicos (698,8 mil) e Terapeutas Ocupacionais (81,8 mil).
             </div>
             <div class="grid-2">
               <div class="card">
@@ -1696,7 +1912,8 @@ ORDER BY ano, tipo_registro;</textarea>
                     </div>
                   </div>
                   <a href="https://doi.org/10.5281/zenodo.24225551" target="_blank" rel="noopener noreferrer"
-                    class="btn" style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
+                    class="btn"
+                    style="padding:5px 10px;font-size:12px;white-space:nowrap;font-family:var(--font-mono);">
                     10.5281/zenodo.24225551 ↗
                   </a>
                 </div>
@@ -1774,13 +1991,15 @@ ORDER BY ano, tipo_registro;</textarea>
             <div class="card-header">
               <div>
                 <h3 class="card-title">Instituições &amp; Laboratórios Parceiros</h3>
-                <p class="card-subtitle">Universidades e laboratórios envolvidos na pesquisa e desenvolvimento da plataforma</p>
+                <p class="card-subtitle">Universidades e laboratórios envolvidos na pesquisa e desenvolvimento da
+                  plataforma</p>
               </div>
             </div>
             <div class="dev-logos-grid">
               <div class="dev-logo-tile">
                 <div class="dev-logo-frame">
-                  <img src="/logos/ufrj.png" alt="Logo da Universidade Federal do Rio de Janeiro (UFRJ)" loading="lazy" />
+                  <img src="/logos/ufrj.png" alt="Logo da Universidade Federal do Rio de Janeiro (UFRJ)"
+                    loading="lazy" />
                 </div>
                 <div class="dev-logo-caption">
                   <strong>UFRJ</strong>
