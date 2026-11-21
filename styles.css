@@ -318,6 +318,18 @@ body {
   flex-shrink: 0;
 }
 
+.topbar.topbar--minimal {
+  padding: 10px 32px 0;
+  border-bottom: none;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.topbar.topbar--minimal .filter-group,
+.topbar.topbar--minimal .topbar-actions > :not(#btnToggleTheme) {
+  display: none;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

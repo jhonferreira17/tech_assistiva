@@ -2567,8 +2567,10 @@ function bindEvents(): void {
         const hideKpiHeader = targetId === 'tab-desenvolvedores' || targetId === 'tab-sobre-ta';
         const kpiStrip = getEl('globalKpiGrid');
         const muniBar = getEl('muniSelectedBar');
+        const topbar = document.querySelector<HTMLElement>('.topbar');
         if (kpiStrip) kpiStrip.style.display = hideKpiHeader ? 'none' : '';
         if (muniBar) muniBar.style.display = hideKpiHeader ? 'none' : '';
+        if (topbar) topbar.classList.toggle('topbar--minimal', targetId === 'tab-sobre-ta');
 
         const target = getEl(targetId);
         if (target) {
